@@ -95,6 +95,113 @@ export type Database = {
         }
         Relationships: []
       }
+      report_votes: {
+        Row: {
+          created_at: string
+          id: string
+          report_id: string
+          updated_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          report_id: string
+          updated_at?: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          report_id?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_votes_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          address: string | null
+          ai_suggestion: string | null
+          ai_summary: string | null
+          community_verified: boolean
+          confidence: number
+          created_at: string
+          damage_types: Database["public"]["Enums"]["damage_type"][]
+          downvotes: number
+          id: string
+          is_flagged: boolean
+          latitude: number
+          longitude: number
+          notes: string | null
+          photos: string[]
+          report_count: number
+          severity: Database["public"]["Enums"]["severity_level"]
+          status: Database["public"]["Enums"]["repair_status"]
+          tags: string[]
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          ai_suggestion?: string | null
+          ai_summary?: string | null
+          community_verified?: boolean
+          confidence?: number
+          created_at?: string
+          damage_types?: Database["public"]["Enums"]["damage_type"][]
+          downvotes?: number
+          id?: string
+          is_flagged?: boolean
+          latitude: number
+          longitude: number
+          notes?: string | null
+          photos?: string[]
+          report_count?: number
+          severity?: Database["public"]["Enums"]["severity_level"]
+          status?: Database["public"]["Enums"]["repair_status"]
+          tags?: string[]
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          ai_suggestion?: string | null
+          ai_summary?: string | null
+          community_verified?: boolean
+          confidence?: number
+          created_at?: string
+          damage_types?: Database["public"]["Enums"]["damage_type"][]
+          downvotes?: number
+          id?: string
+          is_flagged?: boolean
+          latitude?: number
+          longitude?: number
+          notes?: string | null
+          photos?: string[]
+          report_count?: number
+          severity?: Database["public"]["Enums"]["severity_level"]
+          status?: Database["public"]["Enums"]["repair_status"]
+          tags?: string[]
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -132,6 +239,17 @@ export type Database = {
     Enums: {
       app_role: "citizen" | "authority" | "admin"
       authority_request_status: "pending" | "approved" | "rejected"
+      damage_type:
+        | "pothole"
+        | "crack"
+        | "waterlogging"
+        | "landslide"
+        | "drainage"
+        | "bridge_damage"
+        | "streetlight_failure"
+        | "guardrail_damage"
+      repair_status: "pending" | "in_progress" | "resolved"
+      severity_level: "minor" | "moderate" | "critical"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -261,6 +379,18 @@ export const Constants = {
     Enums: {
       app_role: ["citizen", "authority", "admin"],
       authority_request_status: ["pending", "approved", "rejected"],
+      damage_type: [
+        "pothole",
+        "crack",
+        "waterlogging",
+        "landslide",
+        "drainage",
+        "bridge_damage",
+        "streetlight_failure",
+        "guardrail_damage",
+      ],
+      repair_status: ["pending", "in_progress", "resolved"],
+      severity_level: ["minor", "moderate", "critical"],
     },
   },
 } as const
