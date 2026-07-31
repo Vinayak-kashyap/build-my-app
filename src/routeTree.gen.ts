@@ -20,6 +20,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportSubmitRouteImport } from './routes/report.submit'
 import { Route as ReportCaptureRouteImport } from './routes/report.capture'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -77,6 +78,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportSubmitRoute = ReportSubmitRouteImport.update({
+  id: '/report/submit',
+  path: '/report/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportCaptureRoute = ReportCaptureRouteImport.update({
   id: '/report/capture',
   path: '/report/capture',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/report/capture': typeof ReportCaptureRoute
+  '/report/submit': typeof ReportSubmitRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/report/capture': typeof ReportCaptureRoute
+  '/report/submit': typeof ReportSubmitRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/report/capture': typeof ReportCaptureRoute
+  '/report/submit': typeof ReportSubmitRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/report/capture'
+    | '/report/submit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/report/capture'
+    | '/report/submit'
   id:
     | '__root__'
     | '/'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/report/capture'
+    | '/report/submit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ReportCaptureRoute: typeof ReportCaptureRoute
+  ReportSubmitRoute: typeof ReportSubmitRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/report/submit': {
+      id: '/report/submit'
+      path: '/report/submit'
+      fullPath: '/report/submit'
+      preLoaderRoute: typeof ReportSubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/report/capture': {
       id: '/report/capture'
       path: '/report/capture'
@@ -288,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ReportCaptureRoute: ReportCaptureRoute,
+  ReportSubmitRoute: ReportSubmitRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
