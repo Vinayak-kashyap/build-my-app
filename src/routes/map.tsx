@@ -1,69 +1,409 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { MapPin } from "lucide-react";
-import { useEffect } from "react";
+import {
+  Camera,
+  Crosshair,
+  Layers,
+  Mic,
+  Search,
+  SlidersHorizontal,
+  TriangleAlert,
+  WifiOff,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { BottomNav } from "@/components/BottomNav";
+import { FilterSheet } from "@/components/map/FilterSheet";
+import { ReportDetailSheet } from "@/components/map/ReportDetailSheet";
+import { RoadMap, type LayerMode } from "@/components/map/RoadMap";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { syncPending } from "@/lib/offline-queue";
+import { DEFAULT_FILTERS, fetchMyVotes, fetchReports, searchPlaces, type ReportFilters } from "@/lib/reports";
+import {
+  DAMAGE_LABELS,
+  distanceMeters,
+  formatDistance,
+  markerToken,
+  SEVERITY_LABELS,
+  type ReportRow,
+} from "@/lib/roadpulse";
 
 export const Route = createFileRoute("/map")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Live Road Map — RoadPulse" },
+      { title: "Live Road Health Map — RoadPulse" },
       {
         name: "description",
-        content: "Explore live road damage reports, hazard severity and community verification.",
+        content:
+          "Live map of potholes, cracks and waterlogging with severity heatmaps, community verification and repair status.",
       },
-      { property: "og:title", content: "Live Road Map — RoadPulse" },
-      { property: "og:description", content: "Real-time road hazard map powered by AI and the community." },
+      { property: "og:title", content: "Live Road Health Map — RoadPulse" },
+      {
+        property: "og:description",
+        content: "Real-time road hazard map powered by AI detection and community reports.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: MapPage,
+  component: MapScreen,
 });
 
-function MapPage() {
+const ALERT_RADIUS_M = 500;
+const FALLBACK_CENTER: [number, number] = [12.9716, 77.5946];
+const LAYER_ORDER: LayerMode[] = ["standard", "satellite", "heatmap"];
+
+function MapScreen() {
   const navigate = useNavigate();
-  const { loading, session, profile, role, signOut } = useAuth();
+  const { user, loading } = useAuth();
+
+  const [reports, setReports] = useState<ReportRow[]>([]);
+  const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
+  const [layer, setLayer] = useState<LayerMode>("standard");
+  const [selected, setSelected] = useState<ReportRow | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [votes, setVotes] = useState<Map<string, number>>(new Map());
+  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [center, setCenter] = useState<[number, number]>(FALLBACK_CENTER);
+  const [recenterKey, setRecenterKey] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
+  const [offline, setOffline] = useState(false);
+  const [dismissedHazard, setDismissedHazard] = useState<string | null>(null);
+  const firstFix = useRef(true);
 
   useEffect(() => {
-    if (loading) return;
-    if (!session) void navigate({ to: "/login", replace: true });
-    else if (profile && !profile.onboarding_completed) {
-      void supabase
-        .from("profiles")
-        .update({ onboarding_completed: true })
-        .eq("id", session.user.id);
+    if (!loading && !user) void navigate({ to: "/login", replace: true });
+  }, [loading, user, navigate]);
+
+  const load = useCallback(async () => {
+    try {
+      setReports(await fetchReports(filters));
+    } catch {
+      toast.error("Could not load reports");
     }
-  }, [loading, session, profile, navigate]);
+  }, [filters]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!user) return;
+    void fetchMyVotes(user.id).then(setVotes);
+  }, [user]);
+
+  // Live map updates.
+  useEffect(() => {
+    const channel = supabase
+      .channel("reports-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, () => {
+        void load();
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [load]);
+
+  // Location tracking.
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setPosition(next);
+        if (firstFix.current) {
+          firstFix.current = false;
+          setCenter([next.lat, next.lng]);
+          setRecenterKey((k) => k + 1);
+        }
+      },
+      () => undefined,
+      { enableHighAccuracy: true, maximumAge: 15000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  // Offline state + queued report sync.
+  useEffect(() => {
+    const update = () => setOffline(!navigator.onLine);
+    update();
+    const onOnline = async () => {
+      update();
+      if (!user) return;
+      const synced = await syncPending(user.id);
+      if (synced > 0) {
+        toast.success(`${synced} offline report${synced > 1 ? "s" : ""} synced`);
+        void load();
+      }
+    };
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", update);
+    void onOnline();
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", update);
+    };
+  }, [user, load]);
+
+  const nearbyHazard = useMemo(() => {
+    if (!position) return null;
+    const candidates = reports
+      .filter((r) => r.status !== "resolved" && r.severity !== "minor")
+      .map((r) => ({
+        report: r,
+        distance: distanceMeters(position, { lat: r.latitude, lng: r.longitude }),
+      }))
+      .filter((c) => c.distance <= ALERT_RADIUS_M)
+      .sort((a, b) => a.distance - b.distance);
+    const closest = candidates[0];
+    if (!closest || closest.report.id === dismissedHazard) return null;
+    return closest;
+  }, [position, reports, dismissedHazard]);
+
+  const atRiskCount = useMemo(
+    () => reports.filter((r) => r.severity === "critical" && r.status === "pending").length,
+    [reports],
+  );
+
+  useEffect(() => {
+    if (!searchOpen || query.trim().length < 3) {
+      setResults([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void searchPlaces(query).then(setResults);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query, searchOpen]);
+
+  function voiceSearch() {
+    const SpeechRecognition =
+      (window as unknown as { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition ??
+      (window as unknown as { SpeechRecognition?: new () => any }).SpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Voice search isn't supported on this device");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.onresult = (event: any) => {
+      const text = event.results?.[0]?.[0]?.transcript ?? "";
+      setSearchOpen(true);
+      setQuery(text);
+    };
+    recognition.start();
+  }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/12 text-accent">
-        <MapPin className="h-8 w-8" aria-hidden="true" />
-      </span>
-      <h1 className="text-2xl font-bold text-foreground">Live Road Map</h1>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        Signed in as{" "}
-        <span className="font-semibold text-foreground">
-          {profile?.full_name ?? session?.user.email ?? "…"}
-        </span>{" "}
-        · <span className="font-mono uppercase text-accent">{role}</span>
-      </p>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        The interactive hazard map arrives in Phase 3.
-      </p>
+    <main className="relative h-[100dvh] w-full overflow-hidden bg-background">
+      <RoadMap
+        reports={reports}
+        layer={layer}
+        center={center}
+        userPosition={position}
+        recenterKey={recenterKey}
+        onSelect={setSelected}
+      />
+
+      {/* Search bar */}
+      <div className="absolute inset-x-4 top-[calc(env(safe-area-inset-top)+12px)] z-[800]">
+        <div className="glass flex items-center gap-2 rounded-2xl px-3 py-2">
+          <Search className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <input
+            value={query}
+            onFocus={() => setSearchOpen(true)}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search location or address..."
+            aria-label="Search location or address"
+            className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+          <button
+            onClick={voiceSearch}
+            aria-label="Voice search"
+            className="tap-target flex items-center justify-center text-accent"
+          >
+            <Mic className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        {searchOpen && results.length ? (
+          <ul className="glass mt-2 max-h-64 overflow-y-auto rounded-2xl">
+            {results.map((r) => (
+              <li key={`${r.lat}-${r.lon}`}>
+                <button
+                  onClick={() => {
+                    setCenter([Number(r.lat), Number(r.lon)]);
+                    setRecenterKey((k) => k + 1);
+                    setSearchOpen(false);
+                    setQuery(r.display_name);
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm text-foreground hover:bg-surface-elevated"
+                >
+                  {r.display_name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      {/* Right control stack */}
+      <div className="absolute right-4 top-[calc(env(safe-area-inset-top)+80px)] z-[800] flex flex-col gap-2">
+        <ControlButton
+          label={`Map layer: ${layer}`}
+          onClick={() =>
+            setLayer((l) => LAYER_ORDER[(LAYER_ORDER.indexOf(l) + 1) % LAYER_ORDER.length])
+          }
+        >
+          <Layers className="h-5 w-5" aria-hidden="true" />
+        </ControlButton>
+        <ControlButton
+          label="Recenter on my location"
+          onClick={() => {
+            if (!position) {
+              toast.error("Waiting for GPS signal");
+              return;
+            }
+            setCenter([position.lat, position.lng]);
+            setRecenterKey((k) => k + 1);
+          }}
+        >
+          <Crosshair className="h-5 w-5" aria-hidden="true" />
+        </ControlButton>
+        <ControlButton label="Filter reports" onClick={() => setShowFilters(true)}>
+          <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+        </ControlButton>
+      </div>
+
+      {/* Status chips */}
+      <div className="absolute left-4 top-[calc(env(safe-area-inset-top)+80px)] z-[800] flex flex-col items-start gap-2">
+        {atRiskCount > 0 ? (
+          <span className="glass rounded-full px-3 py-1.5 text-xs font-semibold text-moderate">
+            {atRiskCount} road{atRiskCount > 1 ? "s" : ""} at risk
+          </span>
+        ) : null}
+        {offline ? (
+          <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-moderate">
+            <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+            Offline
+          </span>
+        ) : null}
+      </div>
+
+      {/* Hazard proximity banner */}
+      <AnimatePresence>
+        {nearbyHazard ? (
+          <motion.div
+            initial={{ y: -120, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -120, opacity: 0 }}
+            className="glass absolute inset-x-4 top-[calc(env(safe-area-inset-top)+72px)] z-[850] flex items-center gap-3 rounded-2xl p-3"
+            style={{ borderColor: markerToken(nearbyHazard.report) }}
+            role="alert"
+          >
+            <TriangleAlert
+              className="h-6 w-6 shrink-0"
+              style={{ color: markerToken(nearbyHazard.report) }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {DAMAGE_LABELS[nearbyHazard.report.damage_types[0] ?? "pothole"]} ·{" "}
+                {SEVERITY_LABELS[nearbyHazard.report.severity]}
+              </p>
+              <p className="data-mono text-xs text-muted-foreground">
+                {formatDistance(nearbyHazard.distance)} ahead
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                navigate({
+                  to: "/navigation",
+                  search: {
+                    avoid: nearbyHazard.report.id,
+                    lat: nearbyHazard.report.latitude,
+                    lng: nearbyHazard.report.longitude,
+                  },
+                })
+              }
+              className="tap-target rounded-xl bg-accent px-3 text-xs font-bold text-accent-foreground"
+            >
+              Reroute
+            </button>
+            <button
+              onClick={() => setDismissedHazard(nearbyHazard.report.id)}
+              aria-label="Dismiss hazard alert"
+              className="text-xs text-muted-foreground"
+            >
+              ✕
+            </button>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      {/* Camera FAB */}
       <button
-        onClick={async () => {
-          await signOut();
-          toast.success("Signed out");
-          void navigate({ to: "/login", replace: true });
-        }}
-        className="tap-target rounded-xl border border-border px-5 py-3 text-sm font-semibold text-critical"
+        onClick={() => navigate({ to: "/report/capture" })}
+        aria-label="Report road damage with camera"
+        className="absolute bottom-[calc(env(safe-area-inset-bottom)+78px)] left-1/2 z-[900] flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-glow"
       >
-        Sign Out
+        <Camera className="h-7 w-7" aria-hidden="true" />
       </button>
+
+      <BottomNav />
+
+      <AnimatePresence>
+        {showFilters ? (
+          <FilterSheet
+            filters={filters}
+            onClose={() => setShowFilters(false)}
+            onApply={(next) => {
+              setFilters(next);
+              setShowFilters(false);
+            }}
+          />
+        ) : null}
+        {selected ? (
+          <ReportDetailSheet
+            report={selected}
+            myVote={votes.get(selected.id)}
+            onClose={() => setSelected(null)}
+            onVoted={(reportId, value) => {
+              setVotes((prev) => {
+                const next = new Map(prev);
+                if (value === 0) next.delete(reportId);
+                else next.set(reportId, value);
+                return next;
+              });
+              void load();
+            }}
+          />
+        ) : null}
+      </AnimatePresence>
     </main>
+  );
+}
+
+function ControlButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="glass tap-target flex items-center justify-center rounded-xl text-foreground"
+    >
+      {children}
+    </button>
   );
 }
