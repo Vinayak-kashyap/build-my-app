@@ -199,3 +199,65 @@
   min-width: 44px;
   min-height: 44px;
 }
+
+/* ---- Leaflet map markers (RoadPulse) ---- */
+.leaflet-container {
+  background: var(--background);
+  font-family: var(--font-sans);
+}
+.leaflet-control-attribution {
+  background: color-mix(in oklab, var(--surface) 70%, transparent) !important;
+  color: var(--muted-foreground) !important;
+  font-size: 10px;
+}
+.leaflet-control-attribution a {
+  color: var(--accent) !important;
+}
+.rp-icon {
+  background: transparent;
+  border: 0;
+}
+.rp-marker {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--rp);
+  border: 2px solid color-mix(in oklab, var(--background) 70%, transparent);
+  box-shadow: 0 0 12px -2px var(--rp);
+}
+.rp-pulse {
+  animation: rp-marker-pulse 1.8s ease-out infinite;
+}
+@keyframes rp-marker-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--rp) 70%, transparent); }
+  70% { box-shadow: 0 0 0 14px color-mix(in oklab, var(--rp) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--rp) 0%, transparent); }
+}
+.rp-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--rp) 28%, var(--surface));
+  border: 2px solid var(--rp);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 700;
+}
+.rp-user {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--accent);
+  border: 3px solid color-mix(in oklab, var(--background) 60%, transparent);
+  animation: rp-user-pulse 2s ease-out infinite;
+}
+@keyframes rp-user-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 60%, transparent); }
+  70% { box-shadow: 0 0 0 18px color-mix(in oklab, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent); }
+}
