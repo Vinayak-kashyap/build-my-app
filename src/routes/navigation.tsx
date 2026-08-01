@@ -375,7 +375,7 @@ function NavigationScreen() {
                 setNavigating(false);
                 void navigate({ to: "/map" });
               }}
-              className="tap-target mt-3 w-full rounded-xl bg-critical text-sm font-bold text-white"
+              className="tap-target mt-3 w-full rounded-xl bg-critical text-sm font-bold text-critical-foreground"
             >
               End Navigation
             </button>
@@ -441,7 +441,7 @@ function NavigationScreen() {
                 className={`h-6 w-11 rounded-full p-0.5 transition-colors ${emergencyMode ? "bg-critical" : "bg-border"}`}
               >
                 <span
-                  className={`block h-5 w-5 rounded-full bg-white transition-transform ${emergencyMode ? "translate-x-5" : ""}`}
+                  className={`block h-5 w-5 rounded-full bg-foreground transition-transform ${emergencyMode ? "translate-x-5" : ""}`}
                 />
               </span>
             </button>
