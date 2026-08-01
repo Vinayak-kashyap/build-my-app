@@ -27,6 +27,10 @@ type Props = {
   userPosition: { lat: number; lng: number } | null;
   recenterKey: number;
   onSelect: (report: ReportRow) => void;
+  /** Amber "At Risk" forecast overlay (Prediction module). */
+  predictions?: PredictionRow[];
+  showPredictions?: boolean;
+  onSelectPrediction?: (prediction: PredictionRow) => void;
 };
 
 /** Cheap grid clustering — avoids an extra plugin dependency. */
