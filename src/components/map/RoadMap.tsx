@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { markerToken, severityWeight, type ReportRow } from "@/lib/roadpulse";
+import { riskToken, type PredictionRow } from "@/lib/predictions";
 
 export type LayerMode = "standard" | "satellite" | "heatmap";
 
@@ -27,6 +28,10 @@ type Props = {
   userPosition: { lat: number; lng: number } | null;
   recenterKey: number;
   onSelect: (report: ReportRow) => void;
+  /** Amber "At Risk" forecast overlay (Prediction module). */
+  predictions?: PredictionRow[];
+  showPredictions?: boolean;
+  onSelectPrediction?: (prediction: PredictionRow) => void;
 };
 
 /** Cheap grid clustering — avoids an extra plugin dependency. */
@@ -50,6 +55,9 @@ export function RoadMap({
   userPosition,
   recenterKey,
   onSelect,
+  predictions = [],
+  showPredictions = true,
+  onSelectPrediction,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -57,6 +65,7 @@ export function RoadMap({
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
   const glowLayerRef = useRef<L.LayerGroup | null>(null);
   const userLayerRef = useRef<L.LayerGroup | null>(null);
+  const riskLayerRef = useRef<L.LayerGroup | null>(null);
   const reportsRef = useRef(reports);
   const layerRef = useRef(layer);
   const selectRef = useRef(onSelect);
@@ -75,6 +84,7 @@ export function RoadMap({
     });
     mapRef.current = map;
     glowLayerRef.current = L.layerGroup().addTo(map);
+    riskLayerRef.current = L.layerGroup().addTo(map);
     markerLayerRef.current = L.layerGroup().addTo(map);
     userLayerRef.current = L.layerGroup().addTo(map);
     map.on("zoomend", () => render());
@@ -166,6 +176,27 @@ export function RoadMap({
     render();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reports]);
+
+  // Amber "At Risk" prediction overlay.
+  useEffect(() => {
+    const layer = riskLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    if (!showPredictions) return;
+    for (const p of predictions) {
+      const color = riskToken(p.risk_level);
+      L.circle([p.latitude, p.longitude], {
+        radius: 120 + (p.risk_score / 100) * 260,
+        color,
+        weight: 2,
+        dashArray: "6 6",
+        fillColor: color,
+        fillOpacity: 0.12 + (p.risk_score / 100) * 0.16,
+      })
+        .on("click", () => onSelectPrediction?.(p))
+        .addTo(layer);
+    }
+  }, [predictions, showPredictions, onSelectPrediction]);
 
   // User location dot.
   useEffect(() => {
