@@ -64,7 +64,7 @@ export function PredictionSheet({
 
       {predictions[0]?.weather_summary ? (
         <p className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
-          <CloudRain className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
+          <CloudRain className="mt-0.5 h-4 w-4 shrink-0 text-water" aria-hidden="true" />
           {predictions[0].weather_summary}
         </p>
       ) : null}
