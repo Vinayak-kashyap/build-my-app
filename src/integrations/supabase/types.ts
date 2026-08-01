@@ -53,6 +53,39 @@ export type Database = {
         }
         Relationships: []
       }
+      prediction_digests: {
+        Row: {
+          created_at: string
+          headline: string
+          id: string
+          narrative: string
+          period: string
+          region: string | null
+          top_roads: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          headline: string
+          id?: string
+          narrative: string
+          period?: string
+          region?: string | null
+          top_roads?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          headline?: string
+          id?: string
+          narrative?: string
+          period?: string
+          region?: string | null
+          top_roads?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -202,6 +235,63 @@ export type Database = {
         }
         Relationships: []
       }
+      road_predictions: {
+        Row: {
+          address: string | null
+          avg_temp_c: number | null
+          created_at: string
+          expires_at: string
+          id: string
+          latitude: number
+          longitude: number
+          predicted_damage: string | null
+          rainfall_mm: number | null
+          rationale: string | null
+          report_count: number
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+          updated_at: string
+          weather_summary: string | null
+          window_days: number
+        }
+        Insert: {
+          address?: string | null
+          avg_temp_c?: number | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          predicted_damage?: string | null
+          rainfall_mm?: number | null
+          rationale?: string | null
+          report_count?: number
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          updated_at?: string
+          weather_summary?: string | null
+          window_days?: number
+        }
+        Update: {
+          address?: string | null
+          avg_temp_c?: number | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          predicted_damage?: string | null
+          rainfall_mm?: number | null
+          rationale?: string | null
+          report_count?: number
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          updated_at?: string
+          weather_summary?: string | null
+          window_days?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -249,6 +339,7 @@ export type Database = {
         | "streetlight_failure"
         | "guardrail_damage"
       repair_status: "pending" | "in_progress" | "resolved"
+      risk_level: "low" | "moderate" | "high" | "critical"
       severity_level: "minor" | "moderate" | "critical"
     }
     CompositeTypes: {
@@ -390,6 +481,7 @@ export const Constants = {
         "guardrail_damage",
       ],
       repair_status: ["pending", "in_progress", "resolved"],
+      risk_level: ["low", "moderate", "high", "critical"],
       severity_level: ["minor", "moderate", "critical"],
     },
   },
