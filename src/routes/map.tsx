@@ -14,9 +14,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/BottomNav";
 import { FilterSheet } from "@/components/map/FilterSheet";
+import { PredictionSheet } from "@/components/map/PredictionSheet";
 import { ReportDetailSheet } from "@/components/map/ReportDetailSheet";
 import { RoadMap, type LayerMode } from "@/components/map/RoadMap";
 import { useAuth } from "@/hooks/useAuth";
+import { generateForecast } from "@/lib/predict.functions";
+import { fetchLatestDigest, fetchPredictions, type DigestRow, type PredictionRow } from "@/lib/predictions";
 import { supabase } from "@/integrations/supabase/client";
 import { syncPending } from "@/lib/offline-queue";
 import { DEFAULT_FILTERS, fetchMyVotes, fetchReports, searchPlaces, type ReportFilters } from "@/lib/reports";
@@ -57,7 +60,7 @@ const LAYER_ORDER: LayerMode[] = ["standard", "satellite", "heatmap"];
 
 function MapScreen() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, role } = useAuth();
 
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
@@ -74,6 +77,11 @@ function MapScreen() {
   const [offline, setOffline] = useState(false);
   const [dismissedHazard, setDismissedHazard] = useState<string | null>(null);
   const firstFix = useRef(true);
+  const [predictions, setPredictions] = useState<PredictionRow[]>([]);
+  const [digest, setDigest] = useState<DigestRow | null>(null);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const [forecasting, setForecasting] = useState(false);
+  const isAuthority = role === "authority" || role === "admin";
 
   useEffect(() => {
     if (!loading && !user) void navigate({ to: "/login", replace: true });
@@ -95,6 +103,42 @@ function MapScreen() {
     if (!user) return;
     void fetchMyVotes(user.id).then(setVotes);
   }, [user]);
+
+  const loadPredictions = useCallback(async () => {
+    if (!user) return;
+    try {
+      setPredictions(await fetchPredictions());
+    } catch {
+      /* forecast overlay is non-critical */
+    }
+    if (role === "authority" || role === "admin") {
+      setDigest(await fetchLatestDigest());
+    }
+  }, [user, role]);
+
+  useEffect(() => {
+    void loadPredictions();
+  }, [loadPredictions]);
+
+  async function runForecast() {
+    const origin = position ?? { lat: center[0], lng: center[1] };
+    setForecasting(true);
+    try {
+      const result = await generateForecast({
+        data: { lat: origin.lat, lng: origin.lng, span: 0.25, digest: true },
+      });
+      if (result.predictions === 0) {
+        toast.info("Not enough report history in this area yet");
+      } else {
+        toast.success(`${result.predictions} road segments forecast`);
+      }
+      await loadPredictions();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Forecast failed");
+    } finally {
+      setForecasting(false);
+    }
+  }
 
   // Live map updates.
   useEffect(() => {
@@ -166,8 +210,10 @@ function MapScreen() {
   }, [position, reports, dismissedHazard]);
 
   const atRiskCount = useMemo(
-    () => reports.filter((r) => r.severity === "critical" && r.status === "pending").length,
-    [reports],
+    () =>
+      predictions.filter((p) => p.risk_level === "high" || p.risk_level === "critical").length ||
+      reports.filter((r) => r.severity === "critical" && r.status === "pending").length,
+    [predictions, reports],
   );
 
   useEffect(() => {
@@ -207,6 +253,8 @@ function MapScreen() {
         userPosition={position}
         recenterKey={recenterKey}
         onSelect={setSelected}
+        predictions={predictions}
+        onSelectPrediction={() => setShowPredictions(true)}
       />
 
       {/* Search bar */}
@@ -281,10 +329,13 @@ function MapScreen() {
 
       {/* Status chips */}
       <div className="absolute left-4 top-[calc(env(safe-area-inset-top)+80px)] z-[800] flex flex-col items-start gap-2">
-        {atRiskCount > 0 ? (
-          <span className="glass rounded-full px-3 py-1.5 text-xs font-semibold text-moderate">
-            {atRiskCount} road{atRiskCount > 1 ? "s" : ""} at risk
-          </span>
+        {atRiskCount > 0 || isAuthority ? (
+          <button
+            onClick={() => setShowPredictions(true)}
+            className="glass rounded-full px-3 py-1.5 text-xs font-semibold text-moderate"
+          >
+            {atRiskCount} road{atRiskCount === 1 ? "" : "s"} at risk
+          </button>
         ) : null}
         {offline ? (
           <span className="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-moderate">
@@ -357,6 +408,21 @@ function MapScreen() {
       <BottomNav />
 
       <AnimatePresence>
+        {showPredictions ? (
+          <PredictionSheet
+            predictions={predictions}
+            digest={digest}
+            canForecast={isAuthority}
+            generating={forecasting}
+            onGenerate={() => void runForecast()}
+            onClose={() => setShowPredictions(false)}
+            onFocus={(p) => {
+              setCenter([p.latitude, p.longitude]);
+              setRecenterKey((k) => k + 1);
+              setShowPredictions(false);
+            }}
+          />
+        ) : null}
         {showFilters ? (
           <FilterSheet
             filters={filters}
