@@ -18,6 +18,7 @@ import { PredictionSheet } from "@/components/map/PredictionSheet";
 import { ReportDetailSheet } from "@/components/map/ReportDetailSheet";
 import { RoadMap, type LayerMode } from "@/components/map/RoadMap";
 import { useAuth } from "@/hooks/useAuth";
+import { DEFAULT_SETTINGS, fetchSettings } from "@/lib/notifications";
 import { generateForecast } from "@/lib/predict.functions";
 import { fetchLatestDigest, fetchPredictions, type DigestRow, type PredictionRow } from "@/lib/predictions";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,10 @@ import {
 
 export const Route = createFileRoute("/map")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    lat: typeof search.lat === "number" ? search.lat : undefined,
+    lng: typeof search.lng === "number" ? search.lng : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Live Road Health Map — RoadPulse" },
@@ -54,13 +59,15 @@ export const Route = createFileRoute("/map")({
   component: MapScreen,
 });
 
-const ALERT_RADIUS_M = 500;
 const FALLBACK_CENTER: [number, number] = [12.9716, 77.5946];
 const LAYER_ORDER: LayerMode[] = ["standard", "satellite", "heatmap"];
 
 function MapScreen() {
   const navigate = useNavigate();
+  const { lat: focusLat, lng: focusLng } = Route.useSearch();
   const { user, loading, role } = useAuth();
+  const [alertRadius, setAlertRadius] = useState<number>(DEFAULT_SETTINGS.alert_radius_m);
+  const [hazardAlertsOn, setHazardAlertsOn] = useState(true);
 
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
@@ -102,7 +109,21 @@ function MapScreen() {
   useEffect(() => {
     if (!user) return;
     void fetchMyVotes(user.id).then(setVotes);
+    void fetchSettings(user.id)
+      .then((s) => {
+        setAlertRadius(s.alert_radius_m);
+        setHazardAlertsOn(s.hazard_proximity);
+      })
+      .catch(() => undefined);
   }, [user]);
+
+  // Deep link from dashboard / alerts: centre the map on a coordinate.
+  useEffect(() => {
+    if (focusLat == null || focusLng == null) return;
+    setCenter([focusLat, focusLng]);
+    setRecenterKey((k) => k + 1);
+    firstFix.current = false;
+  }, [focusLat, focusLng]);
 
   const loadPredictions = useCallback(async () => {
     if (!user) return;
@@ -202,12 +223,12 @@ function MapScreen() {
         report: r,
         distance: distanceMeters(position, { lat: r.latitude, lng: r.longitude }),
       }))
-      .filter((c) => c.distance <= ALERT_RADIUS_M)
+      .filter((c) => c.distance <= alertRadius)
       .sort((a, b) => a.distance - b.distance);
     const closest = candidates[0];
-    if (!closest || closest.report.id === dismissedHazard) return null;
+    if (!hazardAlertsOn || !closest || closest.report.id === dismissedHazard) return null;
     return closest;
-  }, [position, reports, dismissedHazard]);
+  }, [position, reports, dismissedHazard, alertRadius, hazardAlertsOn]);
 
   const atRiskCount = useMemo(
     () =>
