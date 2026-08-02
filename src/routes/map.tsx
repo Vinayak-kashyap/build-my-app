@@ -63,7 +63,10 @@ const LAYER_ORDER: LayerMode[] = ["standard", "satellite", "heatmap"];
 
 function MapScreen() {
   const navigate = useNavigate();
+  const { lat: focusLat, lng: focusLng } = Route.useSearch();
   const { user, loading, role } = useAuth();
+  const [alertRadius, setAlertRadius] = useState<number>(DEFAULT_SETTINGS.alert_radius_m);
+  const [hazardAlertsOn, setHazardAlertsOn] = useState(true);
 
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
