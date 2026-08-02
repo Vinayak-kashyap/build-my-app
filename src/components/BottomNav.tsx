@@ -1,5 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Bell, Camera, Map as MapIcon, Trophy, User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchUnreadCount } from "@/lib/notifications";
 
 const tabs = [
   { to: "/map", label: "Map", Icon: MapIcon },
@@ -10,6 +13,14 @@ const tabs = [
 ] as const;
 
 export function BottomNav() {
+  const { user } = useAuth();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    void fetchUnreadCount(user.id).then(setUnread).catch(() => undefined);
+  }, [user]);
+
   return (
     <nav
       aria-label="Primary"
@@ -23,7 +34,17 @@ export function BottomNav() {
           activeProps={{ className: "text-accent" }}
           activeOptions={{ exact: to === "/map" }}
         >
-          <Icon className="h-5 w-5" aria-hidden="true" />
+          <span className="relative">
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            {to === "/alerts" && unread > 0 ? (
+              <span
+                aria-label={`${unread} unread alerts`}
+                className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-critical px-1 text-[10px] font-bold text-foreground"
+              >
+                {unread > 9 ? "9+" : unread}
+              </span>
+            ) : null}
+          </span>
           {label}
         </Link>
       ))}
