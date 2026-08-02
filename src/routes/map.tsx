@@ -34,6 +34,10 @@ import {
 
 export const Route = createFileRoute("/map")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    lat: typeof search.lat === "number" ? search.lat : undefined,
+    lng: typeof search.lng === "number" ? search.lng : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Live Road Health Map — RoadPulse" },
@@ -54,7 +58,6 @@ export const Route = createFileRoute("/map")({
   component: MapScreen,
 });
 
-const ALERT_RADIUS_M = 500;
 const FALLBACK_CENTER: [number, number] = [12.9716, 77.5946];
 const LAYER_ORDER: LayerMode[] = ["standard", "satellite", "heatmap"];
 
