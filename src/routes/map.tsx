@@ -18,7 +18,7 @@ import { PredictionSheet } from "@/components/map/PredictionSheet";
 import { ReportDetailSheet } from "@/components/map/ReportDetailSheet";
 import { RoadMap, type LayerMode } from "@/components/map/RoadMap";
 import { useAuth } from "@/hooks/useAuth";
-import { DEFAULT_SETTINGS, fetchSettings, showBrowserNotification } from "@/lib/notifications";
+import { DEFAULT_SETTINGS, fetchSettings } from "@/lib/notifications";
 import { generateForecast } from "@/lib/predict.functions";
 import { fetchLatestDigest, fetchPredictions, type DigestRow, type PredictionRow } from "@/lib/predictions";
 import { supabase } from "@/integrations/supabase/client";

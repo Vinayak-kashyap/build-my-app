@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { LogOut, UserRound } from "lucide-react";
+import { Bell, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +40,25 @@ function ProfileScreen() {
       <p className="max-w-sm text-sm text-muted-foreground">
         Stats, badges and settings arrive in Phase 12.
       </p>
+
+      <div className="mt-2 w-full max-w-sm space-y-3">
+        <button
+          onClick={() => navigate({ to: "/settings/notifications" })}
+          className="tap-target flex w-full items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3.5 text-sm font-semibold text-foreground"
+        >
+          <Bell className="h-4 w-4 text-accent" aria-hidden="true" />
+          Notification Preferences
+        </button>
+        {role === "authority" || role === "admin" ? (
+          <button
+            onClick={() => navigate({ to: "/dashboard" })}
+            className="tap-target flex w-full items-center gap-3 rounded-xl bg-accent px-4 py-3.5 text-sm font-semibold text-accent-foreground"
+          >
+            <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+            Go to Authority Dashboard
+          </button>
+        ) : null}
+      </div>
       <button
         onClick={async () => {
           await signOut();
