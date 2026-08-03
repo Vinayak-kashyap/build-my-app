@@ -86,7 +86,8 @@ function DashboardScreen() {
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
   const [alerts, setAlerts] = useState<NotificationRow[]>([]);
   const [predictions, setPredictions] = useState<PredictionRow[]>([]);
-  const [digest, setDigest] = useState<string | null>(null);
+  const [digest, setDigest] = useState<DigestRow | null>(null);
+  const [briefing, setBriefing] = useState(false);
   const [sort, setSort] = useState<SortKey>("rank");
   const [detail, setDetail] = useState<QueueRow | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -107,7 +108,8 @@ function DashboardScreen() {
     setKpis(k);
     setAlerts(a as NotificationRow[]);
     setPredictions(p);
-    setDigest(d?.headline ?? null);
+    setDigest(d);
+    return { queue: q, digest: d };
   }, [user]);
 
   useEffect(() => {
@@ -120,8 +122,35 @@ function DashboardScreen() {
       void navigate({ to: "/map", replace: true });
       return;
     }
-    void load().catch(() => toast.error("Could not load dashboard data"));
-  }, [user, loading, isAuthority, navigate, load]);
+    void load()
+      .then(async (result) => {
+        // Periodic authority briefing: refresh the weekly AI summary when it is stale.
+        if (!result?.queue.length) return;
+        const stale =
+          !result.digest ||
+          Date.now() - new Date(result.digest.created_at).getTime() > 7 * 86_400_000;
+        if (!stale) return;
+        setBriefing(true);
+        try {
+          await generateForecast({
+            data: {
+              lat: Number(result.queue[0].latitude),
+              lng: Number(result.queue[0].longitude),
+              span: 0.25,
+              region: profile?.region ?? undefined,
+              digest: true,
+            },
+          });
+          await load();
+        } catch {
+          /* forecast is best-effort */
+        } finally {
+          setBriefing(false);
+        }
+      })
+      .catch(() => toast.error("Could not load dashboard data"));
+  }, [user, loading, isAuthority, navigate, load, profile?.region]);
+
 
   const active = useMemo(() => queue.filter((r) => r.status !== "resolved"), [queue]);
 
