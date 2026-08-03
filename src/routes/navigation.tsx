@@ -427,7 +427,7 @@ function NavigationScreen() {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 300, opacity: 0 }}
                 onClick={() => setHazardPopup(upcomingHazard.report)}
-                className="glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+96px)] z-[860] flex items-center gap-3 rounded-2xl p-3 text-left"
+                className="glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+152px)] z-[860] flex items-center gap-3 rounded-2xl p-3 text-left"
                 style={{ borderColor: markerToken(upcomingHazard.report) }}
               >
                 <TriangleAlert
