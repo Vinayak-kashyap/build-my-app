@@ -129,46 +129,104 @@ export function hazardsOnRoute(coordinates: LatLng[], reports: ReportRow[]): Rou
     .sort((a, b) => a.along - b.along);
 }
 
-export async function fetchRoutes(
-  from: LatLng,
-  to: LatLng,
-  reports: ReportRow[],
-): Promise<ScoredRoute[]> {
-  const url = `${OSRM}/${from.lng},${from.lat};${to.lng},${to.lat}?alternatives=3&overview=full&geometries=geojson&steps=true`;
+async function osrmRoutes(points: LatLng[], alternatives: boolean) {
+  const coords = points.map((p) => `${p.lng},${p.lat}`).join(";");
+  const url = `${OSRM}/${coords}?alternatives=${alternatives ? 3 : "false"}&overview=full&geometries=geojson&steps=true`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Routing service unavailable");
   const json = (await res.json()) as OsrmResponse;
   if (json.code !== "Ok" || !json.routes?.length) throw new Error("No route found");
+  return json.routes;
+}
 
-  const routes = json.routes.slice(0, 3).map((route, index) => {
-    const coordinates = route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
-    const hazards = hazardsOnRoute(coordinates, reports);
-    const steps: RouteStep[] = route.legs
-      .flatMap((leg) => leg.steps)
-      .map((step) => ({
-        instruction: instructionFor(step.maneuver.type, step.maneuver.modifier, step.name),
-        distance: step.distance,
-        name: step.name,
-        location: { lat: step.maneuver.location[1], lng: step.maneuver.location[0] },
-      }));
-    const healthScore = scoreRoute(hazards, route.distance);
-    return {
-      id: `route-${index}`,
-      coordinates,
-      distance: route.distance,
-      duration: route.duration,
-      steps,
-      hazards,
-      healthScore,
-      avoidsDamage: !hazards.some((h) => h.report.severity !== "minor"),
-    };
+/** Offset a point perpendicular to the travel direction, in metres. */
+function offsetPoint(point: LatLng, headingDeg: number, metres: number): LatLng {
+  const rad = (headingDeg * Math.PI) / 180;
+  const dLat = (metres * Math.cos(rad)) / 111_320;
+  const dLng = (metres * Math.sin(rad)) / (111_320 * Math.cos((point.lat * Math.PI) / 180));
+  return { lat: point.lat + dLat, lng: point.lng + dLng };
+}
+
+function toScored(
+  route: OsrmResponse["routes"] extends (infer R)[] ? R : never,
+  reports: ReportRow[],
+  id: string,
+): ScoredRoute {
+  const coordinates = route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+  const hazards = hazardsOnRoute(coordinates, reports);
+  const steps: RouteStep[] = route.legs
+    .flatMap((leg) => leg.steps)
+    .map((step) => ({
+      instruction: instructionFor(step.maneuver.type, step.maneuver.modifier, step.name),
+      distance: step.distance,
+      name: step.name,
+      location: { lat: step.maneuver.location[1], lng: step.maneuver.location[0] },
+    }));
+  return {
+    id,
+    coordinates,
+    distance: route.distance,
+    duration: route.duration,
+    steps,
+    hazards,
+    healthScore: scoreRoute(hazards, route.distance),
+    avoidsDamage: !hazards.some((h) => h.report.severity !== "minor"),
+  };
+}
+
+export async function fetchRoutes(
+  from: LatLng,
+  to: LatLng,
+  reports: ReportRow[],
+  options: { emergency?: boolean } = {},
+): Promise<ScoredRoute[]> {
+  const base = (await osrmRoutes([from, to], true)).map((r, i) => toScored(r, reports, `route-${i}`));
+
+  // Damage-aware detours: when every OSRM alternative still crosses Yellow/Red
+  // damage, re-ask for routes through waypoints offset away from the worst hazard.
+  let detours: ScoredRoute[] = [];
+  const needsDetour =
+    !options.emergency && base.every((r) => r.hazards.some((h) => h.report.severity !== "minor"));
+  if (needsDetour) {
+    const worst = base[0].hazards
+      .filter((h) => h.report.severity !== "minor")
+      .sort((a, b) => severityWeight(b.report.severity) - severityWeight(a.report.severity))[0];
+    if (worst) {
+      const hazardPoint = { lat: worst.report.latitude, lng: worst.report.longitude };
+      const travel = bearing(from, to);
+      const candidates = await Promise.allSettled(
+        [90, -90].flatMap((side) =>
+          [350, 700].map((dist) =>
+            osrmRoutes([from, offsetPoint(hazardPoint, travel + side, dist), to], false),
+          ),
+        ),
+      );
+      detours = candidates
+        .filter(
+          (c): c is PromiseFulfilledResult<Awaited<ReturnType<typeof osrmRoutes>>> =>
+            c.status === "fulfilled",
+        )
+        .map((c, i) => toScored(c.value[0], reports, `detour-${i}`));
+    }
+  }
+
+  // De-duplicate near-identical geometries by distance signature.
+  const seen = new Set<number>();
+  const unique = [...base, ...detours].filter((r) => {
+    const key = Math.round(r.distance / 50);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 
-  // Damage-aware ordering: healthiest route first, ties broken by time.
-  return routes.sort(
-    (a, b) => b.healthScore - a.healthScore || a.duration - b.duration,
-  );
+  const sorted = options.emergency
+    ? unique.sort((a, b) => a.duration - b.duration)
+    : // Damage-aware ordering: healthiest route first, ties broken by time.
+      unique.sort((a, b) => b.healthScore - a.healthScore || a.duration - b.duration);
+
+  return sorted.slice(0, 3).map((r, i) => ({ ...r, id: `route-${i}` }));
 }
+
 
 export function formatDuration(seconds: number) {
   const mins = Math.round(seconds / 60);
