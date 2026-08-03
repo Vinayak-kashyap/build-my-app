@@ -31,7 +31,14 @@ import {
   type QueueRow,
 } from "@/lib/dashboard";
 import { markReviewed, type NotificationRow } from "@/lib/notifications";
-import { fetchLatestDigest, fetchPredictions, type PredictionRow } from "@/lib/predictions";
+import { generateForecast } from "@/lib/predict.functions";
+import {
+  fetchLatestDigest,
+  fetchPredictions,
+  type DigestRow,
+  type PredictionRow,
+} from "@/lib/predictions";
+
 import { downloadQueueCsv, downloadQueuePdf } from "@/lib/report-export";
 import { signedPhotoUrls } from "@/lib/reports";
 import {
