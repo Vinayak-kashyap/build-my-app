@@ -357,7 +357,19 @@ function DashboardScreen() {
         <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">
           Prediction Alerts
         </h2>
-        {digest ? <p className="mt-1 text-xs text-muted-foreground">{digest}</p> : null}
+        {briefing ? (
+          <p className="mt-1 text-xs text-accent">Generating this week’s AI briefing…</p>
+        ) : null}
+        {digest ? (
+          <div className="mt-2 rounded-2xl border border-border bg-surface p-3.5">
+            <p className="text-sm font-semibold text-foreground">{digest.headline}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{digest.narrative}</p>
+            <p className="data-mono mt-1 text-[11px] text-muted-foreground">
+              {digest.period} briefing · {timeAgo(digest.created_at)}
+            </p>
+          </div>
+        ) : null}
+
         {predictions.length === 0 ? (
           <p className="mt-3 rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
             No active forecasts — run an AI forecast from the map.
