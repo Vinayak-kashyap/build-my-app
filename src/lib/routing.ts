@@ -147,11 +147,10 @@ function offsetPoint(point: LatLng, headingDeg: number, metres: number): LatLng 
   return { lat: point.lat + dLat, lng: point.lng + dLng };
 }
 
-function toScored(
-  route: OsrmResponse["routes"] extends (infer R)[] ? R : never,
-  reports: ReportRow[],
-  id: string,
-): ScoredRoute {
+type OsrmRoute = NonNullable<OsrmResponse["routes"]>[number];
+
+function toScored(route: OsrmRoute, reports: ReportRow[], id: string): ScoredRoute {
+
   const coordinates = route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
   const hazards = hazardsOnRoute(coordinates, reports);
   const steps: RouteStep[] = route.legs
