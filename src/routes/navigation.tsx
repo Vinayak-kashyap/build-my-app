@@ -360,6 +360,39 @@ function NavigationScreen() {
             </div>
           </div>
 
+          <AnimatePresence>
+            {rerouting ? (
+              <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                role="status"
+                className="glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+96px)] z-[870] flex items-center gap-2 rounded-2xl p-3"
+              >
+                <Loader2 className="h-4 w-4 animate-spin text-accent" aria-hidden="true" />
+                <span className="text-sm font-semibold text-foreground">
+                  Off route — recalculating a damage-aware path
+                </span>
+              </motion.div>
+            ) : emergencyMode ? (
+              <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                className="glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+96px)] z-[860] flex items-center gap-2 rounded-2xl p-3"
+                style={{ borderColor: "var(--critical)" }}
+              >
+                <Siren className="h-4 w-4 text-critical" aria-hidden="true" />
+                <span className="text-xs font-semibold text-foreground">
+                  Emergency mode — fastest path, {activeRoute.hazards.length} hazard
+                  {activeRoute.hazards.length === 1 ? "" : "s"} overlaid
+                </span>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+
+
           <div className="glass absolute bottom-[calc(env(safe-area-inset-bottom)+16px)] inset-x-3 z-[850] rounded-2xl p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
