@@ -88,7 +88,9 @@ function NavigationScreen() {
   const [navigating, setNavigating] = useState(false);
   const [fitKey, setFitKey] = useState(0);
   const [hazardPopup, setHazardPopup] = useState<ReportRow | null>(null);
+  const [rerouting, setRerouting] = useState(false);
   const [dismissedHazards, setDismissedHazards] = useState<string[]>([]);
+
   const lastPoint = useRef<LatLng | null>(null);
   const lastReroute = useRef(0);
 
