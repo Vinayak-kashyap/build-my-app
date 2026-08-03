@@ -31,7 +31,14 @@ import {
   type QueueRow,
 } from "@/lib/dashboard";
 import { markReviewed, type NotificationRow } from "@/lib/notifications";
-import { fetchLatestDigest, fetchPredictions, type PredictionRow } from "@/lib/predictions";
+import { generateForecast } from "@/lib/predict.functions";
+import {
+  fetchLatestDigest,
+  fetchPredictions,
+  type DigestRow,
+  type PredictionRow,
+} from "@/lib/predictions";
+
 import { downloadQueueCsv, downloadQueuePdf } from "@/lib/report-export";
 import { signedPhotoUrls } from "@/lib/reports";
 import {
@@ -79,7 +86,8 @@ function DashboardScreen() {
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
   const [alerts, setAlerts] = useState<NotificationRow[]>([]);
   const [predictions, setPredictions] = useState<PredictionRow[]>([]);
-  const [digest, setDigest] = useState<string | null>(null);
+  const [digest, setDigest] = useState<DigestRow | null>(null);
+  const [briefing, setBriefing] = useState(false);
   const [sort, setSort] = useState<SortKey>("rank");
   const [detail, setDetail] = useState<QueueRow | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -100,7 +108,8 @@ function DashboardScreen() {
     setKpis(k);
     setAlerts(a as NotificationRow[]);
     setPredictions(p);
-    setDigest(d?.headline ?? null);
+    setDigest(d);
+    return { queue: q, digest: d };
   }, [user]);
 
   useEffect(() => {
@@ -113,8 +122,35 @@ function DashboardScreen() {
       void navigate({ to: "/map", replace: true });
       return;
     }
-    void load().catch(() => toast.error("Could not load dashboard data"));
-  }, [user, loading, isAuthority, navigate, load]);
+    void load()
+      .then(async (result) => {
+        // Periodic authority briefing: refresh the weekly AI summary when it is stale.
+        if (!result?.queue.length) return;
+        const stale =
+          !result.digest ||
+          Date.now() - new Date(result.digest.created_at).getTime() > 7 * 86_400_000;
+        if (!stale) return;
+        setBriefing(true);
+        try {
+          await generateForecast({
+            data: {
+              lat: Number(result.queue[0].latitude),
+              lng: Number(result.queue[0].longitude),
+              span: 0.25,
+              region: profile?.region ?? undefined,
+              digest: true,
+            },
+          });
+          await load();
+        } catch {
+          /* forecast is best-effort */
+        } finally {
+          setBriefing(false);
+        }
+      })
+      .catch(() => toast.error("Could not load dashboard data"));
+  }, [user, loading, isAuthority, navigate, load, profile?.region]);
+
 
   const active = useMemo(() => queue.filter((r) => r.status !== "resolved"), [queue]);
 
@@ -321,7 +357,19 @@ function DashboardScreen() {
         <h2 className="text-sm font-bold uppercase tracking-wide text-foreground">
           Prediction Alerts
         </h2>
-        {digest ? <p className="mt-1 text-xs text-muted-foreground">{digest}</p> : null}
+        {briefing ? (
+          <p className="mt-1 text-xs text-accent">Generating this week’s AI briefing…</p>
+        ) : null}
+        {digest ? (
+          <div className="mt-2 rounded-2xl border border-border bg-surface p-3.5">
+            <p className="text-sm font-semibold text-foreground">{digest.headline}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{digest.narrative}</p>
+            <p className="data-mono mt-1 text-[11px] text-muted-foreground">
+              {digest.period} briefing · {timeAgo(digest.created_at)}
+            </p>
+          </div>
+        ) : null}
+
         {predictions.length === 0 ? (
           <p className="mt-3 rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
             No active forecasts — run an AI forecast from the map.

@@ -88,7 +88,9 @@ function NavigationScreen() {
   const [navigating, setNavigating] = useState(false);
   const [fitKey, setFitKey] = useState(0);
   const [hazardPopup, setHazardPopup] = useState<ReportRow | null>(null);
+  const [rerouting, setRerouting] = useState(false);
   const [dismissedHazards, setDismissedHazards] = useState<string[]>([]);
+
   const lastPoint = useRef<LatLng | null>(null);
   const lastReroute = useRef(0);
 
@@ -143,13 +145,13 @@ function NavigationScreen() {
     async (origin: LatLng, destination: LatLng) => {
       setLoadingRoutes(true);
       try {
-        const found = await fetchRoutes(origin, destination, reports);
-        // Emergency mode ranks by arrival time; standard mode by road health.
-        const ordered = emergencyMode
-          ? [...found].sort((a, b) => a.duration - b.duration)
-          : found;
-        setRoutes(ordered);
-        setActiveRouteId(ordered[0]?.id ?? null);
+        // Emergency mode keeps damaged roads in play and ranks by arrival time;
+        // standard mode asks for damage-avoiding detours and ranks by road health.
+        const found = await fetchRoutes(origin, destination, reports, {
+          emergency: emergencyMode,
+        });
+        setRoutes(found);
+        setActiveRouteId(found[0]?.id ?? null);
         setFitKey((k) => k + 1);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Could not plan a route");
@@ -160,6 +162,7 @@ function NavigationScreen() {
     },
     [reports, emergencyMode],
   );
+
 
   useEffect(() => {
     if (!from || !to) return;
@@ -210,9 +213,12 @@ function NavigationScreen() {
     if (!navigating || !progress?.offRoute || !position || !to) return;
     if (Date.now() - lastReroute.current < 15000) return;
     lastReroute.current = Date.now();
-    toast.info("Off route — recalculating");
-    void planRoutes(position, to.point);
+    setRerouting(true);
+    void planRoutes(position, to.point).finally(() => {
+      window.setTimeout(() => setRerouting(false), 2500);
+    });
   }, [navigating, progress?.offRoute, position, to, planRoutes]);
+
 
   const upcomingHazard = useMemo(() => {
     if (!navigating || !activeRoute || !position) return null;
@@ -354,6 +360,39 @@ function NavigationScreen() {
             </div>
           </div>
 
+          <AnimatePresence>
+            {rerouting ? (
+              <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                role="status"
+                className="glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+96px)] z-[870] flex items-center gap-2 rounded-2xl p-3"
+              >
+                <Loader2 className="h-4 w-4 animate-spin text-accent" aria-hidden="true" />
+                <span className="text-sm font-semibold text-foreground">
+                  Off route — recalculating a damage-aware path
+                </span>
+              </motion.div>
+            ) : emergencyMode ? (
+              <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                className="glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+96px)] z-[860] flex items-center gap-2 rounded-2xl p-3"
+                style={{ borderColor: "var(--critical)" }}
+              >
+                <Siren className="h-4 w-4 text-critical" aria-hidden="true" />
+                <span className="text-xs font-semibold text-foreground">
+                  Emergency mode — fastest path, {activeRoute.hazards.length} hazard
+                  {activeRoute.hazards.length === 1 ? "" : "s"} overlaid
+                </span>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+
+
           <div className="glass absolute bottom-[calc(env(safe-area-inset-bottom)+16px)] inset-x-3 z-[850] rounded-2xl p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -388,7 +427,7 @@ function NavigationScreen() {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 300, opacity: 0 }}
                 onClick={() => setHazardPopup(upcomingHazard.report)}
-                className="glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+96px)] z-[860] flex items-center gap-3 rounded-2xl p-3 text-left"
+                className="glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+152px)] z-[860] flex items-center gap-3 rounded-2xl p-3 text-left"
                 style={{ borderColor: markerToken(upcomingHazard.report) }}
               >
                 <TriangleAlert
