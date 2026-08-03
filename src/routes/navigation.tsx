@@ -143,13 +143,13 @@ function NavigationScreen() {
     async (origin: LatLng, destination: LatLng) => {
       setLoadingRoutes(true);
       try {
-        const found = await fetchRoutes(origin, destination, reports);
-        // Emergency mode ranks by arrival time; standard mode by road health.
-        const ordered = emergencyMode
-          ? [...found].sort((a, b) => a.duration - b.duration)
-          : found;
-        setRoutes(ordered);
-        setActiveRouteId(ordered[0]?.id ?? null);
+        // Emergency mode keeps damaged roads in play and ranks by arrival time;
+        // standard mode asks for damage-avoiding detours and ranks by road health.
+        const found = await fetchRoutes(origin, destination, reports, {
+          emergency: emergencyMode,
+        });
+        setRoutes(found);
+        setActiveRouteId(found[0]?.id ?? null);
         setFitKey((k) => k + 1);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Could not plan a route");
@@ -160,6 +160,7 @@ function NavigationScreen() {
     },
     [reports, emergencyMode],
   );
+
 
   useEffect(() => {
     if (!from || !to) return;
