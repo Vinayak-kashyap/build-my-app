@@ -211,9 +211,12 @@ function NavigationScreen() {
     if (!navigating || !progress?.offRoute || !position || !to) return;
     if (Date.now() - lastReroute.current < 15000) return;
     lastReroute.current = Date.now();
-    toast.info("Off route — recalculating");
-    void planRoutes(position, to.point);
+    setRerouting(true);
+    void planRoutes(position, to.point).finally(() => {
+      window.setTimeout(() => setRerouting(false), 2500);
+    });
   }, [navigating, progress?.offRoute, position, to, planRoutes]);
+
 
   const upcomingHazard = useMemo(() => {
     if (!navigating || !activeRoute || !position) return null;
