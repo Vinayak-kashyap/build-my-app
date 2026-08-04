@@ -21,6 +21,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CommunityRouteImport } from './routes/community'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsOfflineRouteImport } from './routes/settings.offline'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as ReportSubmitRouteImport } from './routes/report.submit'
 import { Route as ReportCaptureRouteImport } from './routes/report.capture'
@@ -85,6 +86,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsOfflineRoute = SettingsOfflineRouteImport.update({
+  id: '/settings/offline',
+  path: '/settings/offline',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
   id: '/settings/notifications',
   path: '/settings/notifications',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/offline': typeof SettingsOfflineRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/offline': typeof SettingsOfflineRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/offline': typeof SettingsOfflineRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
+    | '/settings/offline'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
+    | '/settings/offline'
   id:
     | '__root__'
     | '/'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
+    | '/settings/offline'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   ReportCaptureRoute: typeof ReportCaptureRoute
   ReportSubmitRoute: typeof ReportSubmitRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
+  SettingsOfflineRoute: typeof SettingsOfflineRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/offline': {
+      id: '/settings/offline'
+      path: '/settings/offline'
+      fullPath: '/settings/offline'
+      preLoaderRoute: typeof SettingsOfflineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/notifications': {
       id: '/settings/notifications'
       path: '/settings/notifications'
@@ -351,6 +371,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportCaptureRoute: ReportCaptureRoute,
   ReportSubmitRoute: ReportSubmitRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
+  SettingsOfflineRoute: SettingsOfflineRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
