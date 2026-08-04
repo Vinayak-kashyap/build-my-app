@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Bell, LayoutDashboard, LogOut, UserRound } from "lucide-react";
+import { Bell, CloudOff, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/BottomNav";
 import { useAuth } from "@/hooks/useAuth";
