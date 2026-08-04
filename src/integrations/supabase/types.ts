@@ -151,6 +151,41 @@ export type Database = {
           },
         ]
       }
+      point_events: {
+        Row: {
+          created_at: string
+          id: string
+          points: number
+          reason: string
+          report_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points: number
+          reason: string
+          report_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points?: number
+          reason?: string
+          report_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prediction_digests: {
         Row: {
           created_at: string
@@ -188,12 +223,16 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          city: string | null
           created_at: string
           full_name: string | null
           id: string
+          last_report_on: string | null
+          longest_streak: number
           onboarding_completed: boolean
           points: number
           region: string | null
+          state: string | null
           streak_days: number
           updated_at: string
           username: string | null
@@ -201,12 +240,16 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
           created_at?: string
           full_name?: string | null
           id: string
+          last_report_on?: string | null
+          longest_streak?: number
           onboarding_completed?: boolean
           points?: number
           region?: string | null
+          state?: string | null
           streak_days?: number
           updated_at?: string
           username?: string | null
@@ -214,12 +257,16 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          city?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          last_report_on?: string | null
+          longest_streak?: number
           onboarding_completed?: boolean
           points?: number
           region?: string | null
+          state?: string | null
           streak_days?: number
           updated_at?: string
           username?: string | null
@@ -405,6 +452,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_badges: {
+        Row: {
+          badge_key: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_key: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_key?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -431,12 +499,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_points: {
+        Args: {
+          _points: number
+          _reason: string
+          _report_id?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      evaluate_badges: { Args: { _user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      leaderboard: {
+        Args: { _limit?: number; _scope?: string }
+        Returns: {
+          avatar_url: string
+          city: string
+          full_name: string
+          points: number
+          rank: number
+          report_count: number
+          state: string
+          streak_days: number
+          user_id: string
+          username: string
+          weekly_points: number
+        }[]
       }
       vote_weight: { Args: { _user_id: string }; Returns: number }
     }
