@@ -279,9 +279,8 @@ function MyReportsTab() {
           {visible.map((r) => (
             <li key={r.id}>
               <button
-                onClick={() =>
-                  navigate({ to: "/map", search: { lat: r.latitude, lng: r.longitude } })
-                }
+                onClick={() => navigate({ to: "/report/$id", params: { id: r.id } })}
+
                 className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left"
               >
                 {thumbs[r.id] ? (
