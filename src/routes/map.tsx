@@ -4,6 +4,8 @@ import {
   Camera,
   Crosshair,
   Layers,
+  LayoutDashboard,
+
   Mic,
   Search,
   SlidersHorizontal,
