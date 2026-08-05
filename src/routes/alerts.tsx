@@ -112,14 +112,17 @@ function AlertsScreen() {
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, read: true } : i)));
       await markRead([item.id]);
     }
-    if (item.latitude != null && item.longitude != null) {
+    if (item.report_id) {
+      void navigate({ to: "/report/$id", params: { id: item.report_id } });
+    } else if (item.latitude != null && item.longitude != null) {
       void navigate({
         to: "/map",
-        search: { focus: item.report_id ?? undefined, lat: item.latitude, lng: item.longitude },
+        search: { lat: item.latitude, lng: item.longitude },
       });
     } else {
       void navigate({ to: "/map" });
     }
+
   }
 
   return (

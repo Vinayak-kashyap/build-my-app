@@ -532,6 +532,7 @@ export type Database = {
           weekly_points: number
         }[]
       }
+      username_available: { Args: { _username: string }; Returns: boolean }
       vote_weight: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {

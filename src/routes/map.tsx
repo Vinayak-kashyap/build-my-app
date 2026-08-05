@@ -4,6 +4,8 @@ import {
   Camera,
   Crosshair,
   Layers,
+  LayoutDashboard,
+
   Mic,
   Search,
   SlidersHorizontal,
@@ -346,6 +348,15 @@ function MapScreen() {
         <ControlButton label="Filter reports" onClick={() => setShowFilters(true)}>
           <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
         </ControlButton>
+        {isAuthority ? (
+          <ControlButton
+            label="Open authority dashboard"
+            onClick={() => navigate({ to: "/dashboard" })}
+          >
+            <LayoutDashboard className="h-5 w-5" aria-hidden="true" />
+          </ControlButton>
+        ) : null}
+
       </div>
 
       {/* Status chips */}
