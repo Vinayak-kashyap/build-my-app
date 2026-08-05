@@ -1,7 +1,14 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { urgencyBand, type QueueRow } from "@/lib/dashboard";
-import { DAMAGE_LABELS, SEVERITY_LABELS, STATUS_LABELS, formatCoords } from "@/lib/roadpulse";
+import {
+  DAMAGE_LABELS,
+  SEVERITY_LABELS,
+  STATUS_LABELS,
+  formatCoords,
+  type ReportRow,
+} from "@/lib/roadpulse";
+
 
 const HEAD = [
   "Rank",
