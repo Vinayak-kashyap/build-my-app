@@ -26,7 +26,7 @@ export function BottomNav() {
       <Link
         to="/report/capture"
         aria-label="Capture a new road damage report"
-        className="fixed bottom-9 left-1/2 z-[901] flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-[0_8px_24px_rgba(0,212,255,0.35)]"
+        className="fixed bottom-[76px] left-1/2 z-[901] flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-[0_8px_24px_rgba(0,212,255,0.35)]"
       >
         <Plus className="h-7 w-7" aria-hidden="true" />
       </Link>
