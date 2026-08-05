@@ -65,3 +65,31 @@ export function downloadQueueCsv(queue: QueueRow[]) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+const MY_HEAD = ["#", "Date", "Location", "GPS", "Damage", "Severity", "Confidence", "Status"];
+
+/** Personal export of every report the signed-in citizen has submitted. */
+export function downloadMyReportsPdf(reports: ReportRow[], authorName: string) {
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text("RoadPulse — My Reports", 14, 16);
+  doc.setFontSize(10);
+  doc.text(`${authorName} · ${reports.length} reports · ${new Date().toLocaleString()}`, 14, 23);
+  autoTable(doc, {
+    head: [MY_HEAD],
+    body: reports.map((r, i) => [
+      String(i + 1),
+      new Date(r.created_at).toLocaleDateString(),
+      r.address ?? "Unnamed road",
+      formatCoords(r.latitude, r.longitude),
+      r.damage_types.map((d) => DAMAGE_LABELS[d]).join(", "),
+      SEVERITY_LABELS[r.severity],
+      `${Math.round(Number(r.confidence))}%`,
+      STATUS_LABELS[r.status],
+    ]),
+    startY: 28,
+    styles: { fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: [15, 23, 42] },
+  });
+  doc.save(`roadpulse-my-reports-${Date.now()}.pdf`);
+}
