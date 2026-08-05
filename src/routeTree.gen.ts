@@ -25,6 +25,7 @@ import { Route as SettingsOfflineRouteImport } from './routes/settings.offline'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as ReportSubmitRouteImport } from './routes/report.submit'
 import { Route as ReportCaptureRouteImport } from './routes/report.capture'
+import { Route as ReportIdRouteImport } from './routes/report.$id'
 import { Route as ProfileEditRouteImport } from './routes/profile.edit'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -107,6 +108,11 @@ const ReportCaptureRoute = ReportCaptureRouteImport.update({
   path: '/report/capture',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportIdRoute = ReportIdRouteImport.update({
+  id: '/report/$id',
+  path: '/report/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileEditRoute = ProfileEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/profile/edit': typeof ProfileEditRoute
+  '/report/$id': typeof ReportIdRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/profile/edit': typeof ProfileEditRoute
+  '/report/$id': typeof ReportIdRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/profile/edit': typeof ProfileEditRoute
+  '/report/$id': typeof ReportIdRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/profile/edit'
+    | '/report/$id'
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/profile/edit'
+    | '/report/$id'
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/profile/edit'
+    | '/report/$id'
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
@@ -244,6 +256,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ReportIdRoute: typeof ReportIdRoute
   ReportCaptureRoute: typeof ReportCaptureRoute
   ReportSubmitRoute: typeof ReportSubmitRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
@@ -364,6 +377,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportCaptureRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/report/$id': {
+      id: '/report/$id'
+      path: '/report/$id'
+      fullPath: '/report/$id'
+      preLoaderRoute: typeof ReportIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile/edit': {
       id: '/profile/edit'
       path: '/edit'
@@ -398,6 +418,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRouteWithChildren,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ReportIdRoute: ReportIdRoute,
   ReportCaptureRoute: ReportCaptureRoute,
   ReportSubmitRoute: ReportSubmitRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
