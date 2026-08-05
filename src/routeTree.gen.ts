@@ -25,6 +25,7 @@ import { Route as SettingsOfflineRouteImport } from './routes/settings.offline'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as ReportSubmitRouteImport } from './routes/report.submit'
 import { Route as ReportCaptureRouteImport } from './routes/report.capture'
+import { Route as ProfileEditRouteImport } from './routes/profile.edit'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -106,6 +107,11 @@ const ReportCaptureRoute = ReportCaptureRouteImport.update({
   path: '/report/capture',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileEditRoute = ProfileEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => ProfileRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,9 +123,10 @@ export interface FileRoutesByFullPath {
   '/map': typeof MapRoute
   '/navigation': typeof NavigationRoute
   '/onboarding': typeof OnboardingRoute
-  '/profile': typeof ProfileRoute
+  '/profile': typeof ProfileRouteWithChildren
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/profile/edit': typeof ProfileEditRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -135,9 +142,10 @@ export interface FileRoutesByTo {
   '/map': typeof MapRoute
   '/navigation': typeof NavigationRoute
   '/onboarding': typeof OnboardingRoute
-  '/profile': typeof ProfileRoute
+  '/profile': typeof ProfileRouteWithChildren
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/profile/edit': typeof ProfileEditRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -154,9 +162,10 @@ export interface FileRoutesById {
   '/map': typeof MapRoute
   '/navigation': typeof NavigationRoute
   '/onboarding': typeof OnboardingRoute
-  '/profile': typeof ProfileRoute
+  '/profile': typeof ProfileRouteWithChildren
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/profile/edit': typeof ProfileEditRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/reset-password'
+    | '/profile/edit'
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/reset-password'
+    | '/profile/edit'
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/register'
     | '/reset-password'
+    | '/profile/edit'
     | '/report/capture'
     | '/report/submit'
     | '/settings/notifications'
@@ -229,7 +241,7 @@ export interface RootRouteChildren {
   MapRoute: typeof MapRoute
   NavigationRoute: typeof NavigationRoute
   OnboardingRoute: typeof OnboardingRoute
-  ProfileRoute: typeof ProfileRoute
+  ProfileRoute: typeof ProfileRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ReportCaptureRoute: typeof ReportCaptureRoute
@@ -352,8 +364,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportCaptureRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/edit': {
+      id: '/profile/edit'
+      path: '/edit'
+      fullPath: '/profile/edit'
+      preLoaderRoute: typeof ProfileEditRouteImport
+      parentRoute: typeof ProfileRoute
+    }
   }
 }
+
+interface ProfileRouteChildren {
+  ProfileEditRoute: typeof ProfileEditRoute
+}
+
+const ProfileRouteChildren: ProfileRouteChildren = {
+  ProfileEditRoute: ProfileEditRoute,
+}
+
+const ProfileRouteWithChildren =
+  ProfileRoute._addFileChildren(ProfileRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -365,7 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   MapRoute: MapRoute,
   NavigationRoute: NavigationRoute,
   OnboardingRoute: OnboardingRoute,
-  ProfileRoute: ProfileRoute,
+  ProfileRoute: ProfileRouteWithChildren,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ReportCaptureRoute: ReportCaptureRoute,
