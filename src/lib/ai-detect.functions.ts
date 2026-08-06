@@ -25,6 +25,7 @@ repair suggestion a single concrete action (e.g. cold-mix patching, full resurfa
 guardrail replacement). If the photo does not show a road surface, set is_road false and confidence low.`;
 
 export const detectDamage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }): Promise<DamageDetection> => {
     const apiKey = process.env.LOVABLE_API_KEY;
