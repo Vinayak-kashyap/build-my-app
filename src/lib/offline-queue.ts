@@ -58,8 +58,8 @@ export async function uploadReport(draft: ReportDraft, userId: string) {
 
   const { error } = await supabase.from("reports").insert({
     user_id: userId,
-    latitude: draft.latitude ?? 0,
-    longitude: draft.longitude ?? 0,
+    latitude: draft.latitude,
+    longitude: draft.longitude,
     address: draft.address,
     damage_types: draft.damage_types,
     severity: draft.severity,
