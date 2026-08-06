@@ -3,6 +3,13 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { markerToken, severityWeight, type ReportRow } from "@/lib/roadpulse";
 import { riskToken, type PredictionRow } from "@/lib/predictions";
+import { useTheme } from "@/hooks/useTheme";
+
+/** Daylight basemaps — swapped in when the app is in the bright/auto-day theme. */
+const LIGHT_TILES: Partial<Record<LayerMode, string>> = {
+  standard: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+  heatmap: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+};
 
 export type LayerMode = "standard" | "satellite" | "heatmap";
 
