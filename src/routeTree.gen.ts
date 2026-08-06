@@ -23,6 +23,7 @@ import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsOfflineRouteImport } from './routes/settings.offline'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
+import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
 import { Route as ReportSubmitRouteImport } from './routes/report.submit'
 import { Route as ReportCaptureRouteImport } from './routes/report.capture'
 import { Route as ReportIdRouteImport } from './routes/report.$id'
@@ -98,6 +99,11 @@ const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
   path: '/settings/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
+  id: '/settings/appearance',
+  path: '/settings/appearance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportSubmitRoute = ReportSubmitRouteImport.update({
   id: '/report/submit',
   path: '/report/submit',
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/report/$id': typeof ReportIdRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/offline': typeof SettingsOfflineRoute
 }
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/report/$id': typeof ReportIdRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/offline': typeof SettingsOfflineRoute
 }
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/report/$id': typeof ReportIdRoute
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/offline': typeof SettingsOfflineRoute
 }
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/report/$id'
     | '/report/capture'
     | '/report/submit'
+    | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/offline'
   fileRoutesByTo: FileRoutesByTo
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/report/$id'
     | '/report/capture'
     | '/report/submit'
+    | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/offline'
   id:
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/report/$id'
     | '/report/capture'
     | '/report/submit'
+    | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/offline'
   fileRoutesById: FileRoutesById
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   ReportIdRoute: typeof ReportIdRoute
   ReportCaptureRoute: typeof ReportCaptureRoute
   ReportSubmitRoute: typeof ReportSubmitRoute
+  SettingsAppearanceRoute: typeof SettingsAppearanceRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   SettingsOfflineRoute: typeof SettingsOfflineRoute
 }
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/appearance': {
+      id: '/settings/appearance'
+      path: '/settings/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof SettingsAppearanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/report/submit': {
       id: '/report/submit'
       path: '/report/submit'
@@ -421,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportIdRoute: ReportIdRoute,
   ReportCaptureRoute: ReportCaptureRoute,
   ReportSubmitRoute: ReportSubmitRoute,
+  SettingsAppearanceRoute: SettingsAppearanceRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsOfflineRoute: SettingsOfflineRoute,
 }
