@@ -42,6 +42,9 @@ export async function removePending(id: string) {
 
 /** Upload photos + insert one report row. Shared by online submit and offline sync. */
 export async function uploadReport(draft: ReportDraft, userId: string) {
+  if (draft.latitude == null || draft.longitude == null) {
+    throw new Error("Location missing — please retry with location services on");
+  }
   const paths: string[] = [];
   for (const [index, dataUrl] of draft.photos.entries()) {
     const blob = dataUrlToBlob(dataUrl);
