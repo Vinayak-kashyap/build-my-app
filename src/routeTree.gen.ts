@@ -23,6 +23,7 @@ import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsOfflineRouteImport } from './routes/settings.offline'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
+import { Route as SettingsLanguageRouteImport } from './routes/settings.language'
 import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
 import { Route as ReportSubmitRouteImport } from './routes/report.submit'
 import { Route as ReportCaptureRouteImport } from './routes/report.capture'
@@ -99,6 +100,11 @@ const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
   path: '/settings/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsLanguageRoute = SettingsLanguageRouteImport.update({
+  id: '/settings/language',
+  path: '/settings/language',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
   id: '/settings/appearance',
   path: '/settings/appearance',
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/language': typeof SettingsLanguageRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/offline': typeof SettingsOfflineRoute
 }
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/language': typeof SettingsLanguageRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/offline': typeof SettingsOfflineRoute
 }
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/report/capture': typeof ReportCaptureRoute
   '/report/submit': typeof ReportSubmitRoute
   '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/language': typeof SettingsLanguageRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/offline': typeof SettingsOfflineRoute
 }
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/report/capture'
     | '/report/submit'
     | '/settings/appearance'
+    | '/settings/language'
     | '/settings/notifications'
     | '/settings/offline'
   fileRoutesByTo: FileRoutesByTo
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/report/capture'
     | '/report/submit'
     | '/settings/appearance'
+    | '/settings/language'
     | '/settings/notifications'
     | '/settings/offline'
   id:
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/report/capture'
     | '/report/submit'
     | '/settings/appearance'
+    | '/settings/language'
     | '/settings/notifications'
     | '/settings/offline'
   fileRoutesById: FileRoutesById
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   ReportCaptureRoute: typeof ReportCaptureRoute
   ReportSubmitRoute: typeof ReportSubmitRoute
   SettingsAppearanceRoute: typeof SettingsAppearanceRoute
+  SettingsLanguageRoute: typeof SettingsLanguageRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   SettingsOfflineRoute: typeof SettingsOfflineRoute
 }
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/language': {
+      id: '/settings/language'
+      path: '/settings/language'
+      fullPath: '/settings/language'
+      preLoaderRoute: typeof SettingsLanguageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/appearance': {
       id: '/settings/appearance'
       path: '/settings/appearance'
@@ -442,6 +462,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportCaptureRoute: ReportCaptureRoute,
   ReportSubmitRoute: ReportSubmitRoute,
   SettingsAppearanceRoute: SettingsAppearanceRoute,
+  SettingsLanguageRoute: SettingsLanguageRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsOfflineRoute: SettingsOfflineRoute,
 }
