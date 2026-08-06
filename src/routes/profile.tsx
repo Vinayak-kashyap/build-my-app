@@ -6,6 +6,7 @@ import {
   CloudOff,
   Download,
   Globe,
+  Palette,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -272,10 +273,16 @@ function ProfileScreen() {
           onClick={() => void onChangePassword()}
         />
         <ListItem
+          icon={<Palette className="h-4 w-4 text-accent" />}
+          label="Appearance & Theme"
+          value="Dark / Bright / Auto"
+          onClick={() => navigate({ to: "/settings/appearance" })}
+        />
+        <ListItem
           icon={<Globe className="h-4 w-4 text-accent" />}
           label="Language / Region"
           value={profile?.region ?? "Not set"}
-          onClick={() => navigate({ to: "/profile/edit" })}
+          onClick={() => navigate({ to: "/settings/language" })}
         />
         <ListItem
           icon={<ShieldCheck className="h-4 w-4 text-accent" />}

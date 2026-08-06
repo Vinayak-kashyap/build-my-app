@@ -69,6 +69,7 @@ export function RoadMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const tileRef = useRef<L.TileLayer | null>(null);
+  const { resolved: resolvedTheme } = useTheme();
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
   const glowLayerRef = useRef<L.LayerGroup | null>(null);
   const userLayerRef = useRef<L.LayerGroup | null>(null);
@@ -108,13 +109,14 @@ export function RoadMap({
     if (!map) return;
     if (tileRef.current) map.removeLayer(tileRef.current);
     const conf = TILES[layer];
-    tileRef.current = L.tileLayer(conf.url, {
+    const url = resolvedTheme === "light" ? (LIGHT_TILES[layer] ?? conf.url) : conf.url;
+    tileRef.current = L.tileLayer(url, {
       attribution: conf.attribution,
       maxZoom: 19,
     }).addTo(map);
     render();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layer]);
+  }, [layer, resolvedTheme]);
 
   function render() {
     const map = mapRef.current;
