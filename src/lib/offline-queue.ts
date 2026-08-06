@@ -42,6 +42,9 @@ export async function removePending(id: string) {
 
 /** Upload photos + insert one report row. Shared by online submit and offline sync. */
 export async function uploadReport(draft: ReportDraft, userId: string) {
+  if (draft.latitude == null || draft.longitude == null) {
+    throw new Error("Location missing — please retry with location services on");
+  }
   const paths: string[] = [];
   for (const [index, dataUrl] of draft.photos.entries()) {
     const blob = dataUrlToBlob(dataUrl);
@@ -55,8 +58,8 @@ export async function uploadReport(draft: ReportDraft, userId: string) {
 
   const { error } = await supabase.from("reports").insert({
     user_id: userId,
-    latitude: draft.latitude ?? 0,
-    longitude: draft.longitude ?? 0,
+    latitude: draft.latitude,
+    longitude: draft.longitude,
     address: draft.address,
     damage_types: draft.damage_types,
     severity: draft.severity,

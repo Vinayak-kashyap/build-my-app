@@ -37,9 +37,9 @@ import {
 
 export const Route = createFileRoute("/map")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>) => ({
-    lat: typeof search.lat === "number" ? search.lat : undefined,
-    lng: typeof search.lng === "number" ? search.lng : undefined,
+  validateSearch: (search: Record<string, unknown>): { lat?: number; lng?: number } => ({
+    ...(typeof search.lat === "number" ? { lat: search.lat } : {}),
+    ...(typeof search.lng === "number" ? { lng: search.lng } : {}),
   }),
   head: () => ({
     meta: [
