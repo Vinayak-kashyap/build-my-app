@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -53,186 +53,16 @@ export type Database = {
         }
         Relationships: []
       }
-      notification_settings: {
-        Row: {
-          alert_radius_m: number
-          authority_alerts: boolean
-          created_at: string
-          hazard_proximity: boolean
-          prediction_warnings: boolean
-          repair_updates: boolean
-          updated_at: string
-          user_id: string
-          vote_activity: boolean
-          weekly_digest_email: boolean
-        }
-        Insert: {
-          alert_radius_m?: number
-          authority_alerts?: boolean
-          created_at?: string
-          hazard_proximity?: boolean
-          prediction_warnings?: boolean
-          repair_updates?: boolean
-          updated_at?: string
-          user_id: string
-          vote_activity?: boolean
-          weekly_digest_email?: boolean
-        }
-        Update: {
-          alert_radius_m?: number
-          authority_alerts?: boolean
-          created_at?: string
-          hazard_proximity?: boolean
-          prediction_warnings?: boolean
-          repair_updates?: boolean
-          updated_at?: string
-          user_id?: string
-          vote_activity?: boolean
-          weekly_digest_email?: boolean
-        }
-        Relationships: []
-      }
-      notifications: {
-        Row: {
-          body: string | null
-          created_at: string
-          id: string
-          latitude: number | null
-          location_label: string | null
-          longitude: number | null
-          read: boolean
-          report_id: string | null
-          reviewed: boolean
-          severity: Database["public"]["Enums"]["severity_level"] | null
-          title: string
-          type: Database["public"]["Enums"]["notification_type"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          body?: string | null
-          created_at?: string
-          id?: string
-          latitude?: number | null
-          location_label?: string | null
-          longitude?: number | null
-          read?: boolean
-          report_id?: string | null
-          reviewed?: boolean
-          severity?: Database["public"]["Enums"]["severity_level"] | null
-          title: string
-          type: Database["public"]["Enums"]["notification_type"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          body?: string | null
-          created_at?: string
-          id?: string
-          latitude?: number | null
-          location_label?: string | null
-          longitude?: number | null
-          read?: boolean
-          report_id?: string | null
-          reviewed?: boolean
-          severity?: Database["public"]["Enums"]["severity_level"] | null
-          title?: string
-          type?: Database["public"]["Enums"]["notification_type"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_report_id_fkey"
-            columns: ["report_id"]
-            isOneToOne: false
-            referencedRelation: "reports"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      point_events: {
-        Row: {
-          created_at: string
-          id: string
-          points: number
-          reason: string
-          report_id: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          points: number
-          reason: string
-          report_id?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          points?: number
-          reason?: string
-          report_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "point_events_report_id_fkey"
-            columns: ["report_id"]
-            isOneToOne: false
-            referencedRelation: "reports"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      prediction_digests: {
-        Row: {
-          created_at: string
-          headline: string
-          id: string
-          narrative: string
-          period: string
-          region: string | null
-          top_roads: Json
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          headline: string
-          id?: string
-          narrative: string
-          period?: string
-          region?: string | null
-          top_roads?: Json
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          headline?: string
-          id?: string
-          narrative?: string
-          period?: string
-          region?: string | null
-          top_roads?: Json
-          updated_at?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
-          city: string | null
           created_at: string
           full_name: string | null
           id: string
-          last_report_on: string | null
-          longest_streak: number
           onboarding_completed: boolean
           points: number
           region: string | null
-          state: string | null
           streak_days: number
           updated_at: string
           username: string | null
@@ -240,16 +70,12 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
-          city?: string | null
           created_at?: string
           full_name?: string | null
           id: string
-          last_report_on?: string | null
-          longest_streak?: number
           onboarding_completed?: boolean
           points?: number
           region?: string | null
-          state?: string | null
           streak_days?: number
           updated_at?: string
           username?: string | null
@@ -257,16 +83,12 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
-          city?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
-          last_report_on?: string | null
-          longest_streak?: number
           onboarding_completed?: boolean
           points?: number
           region?: string | null
-          state?: string | null
           streak_days?: number
           updated_at?: string
           username?: string | null
@@ -310,9 +132,7 @@ export type Database = {
       }
       reports: {
         Row: {
-          accident_count: number
           address: string | null
-          ai_confidence: number
           ai_suggestion: string | null
           ai_summary: string | null
           community_verified: boolean
@@ -326,21 +146,16 @@ export type Database = {
           longitude: number
           notes: string | null
           photos: string[]
-          priority_score: number
           report_count: number
           severity: Database["public"]["Enums"]["severity_level"]
           status: Database["public"]["Enums"]["repair_status"]
-          status_updated_at: string | null
-          status_updated_by: string | null
           tags: string[]
           updated_at: string
           upvotes: number
           user_id: string
         }
         Insert: {
-          accident_count?: number
           address?: string | null
-          ai_confidence?: number
           ai_suggestion?: string | null
           ai_summary?: string | null
           community_verified?: boolean
@@ -354,21 +169,16 @@ export type Database = {
           longitude: number
           notes?: string | null
           photos?: string[]
-          priority_score?: number
           report_count?: number
           severity?: Database["public"]["Enums"]["severity_level"]
           status?: Database["public"]["Enums"]["repair_status"]
-          status_updated_at?: string | null
-          status_updated_by?: string | null
           tags?: string[]
           updated_at?: string
           upvotes?: number
           user_id: string
         }
         Update: {
-          accident_count?: number
           address?: string | null
-          ai_confidence?: number
           ai_suggestion?: string | null
           ai_summary?: string | null
           community_verified?: boolean
@@ -382,93 +192,12 @@ export type Database = {
           longitude?: number
           notes?: string | null
           photos?: string[]
-          priority_score?: number
           report_count?: number
           severity?: Database["public"]["Enums"]["severity_level"]
           status?: Database["public"]["Enums"]["repair_status"]
-          status_updated_at?: string | null
-          status_updated_by?: string | null
           tags?: string[]
           updated_at?: string
           upvotes?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      road_predictions: {
-        Row: {
-          address: string | null
-          avg_temp_c: number | null
-          created_at: string
-          expires_at: string
-          id: string
-          latitude: number
-          longitude: number
-          predicted_damage: string | null
-          rainfall_mm: number | null
-          rationale: string | null
-          report_count: number
-          risk_level: Database["public"]["Enums"]["risk_level"]
-          risk_score: number
-          updated_at: string
-          weather_summary: string | null
-          window_days: number
-        }
-        Insert: {
-          address?: string | null
-          avg_temp_c?: number | null
-          created_at?: string
-          expires_at?: string
-          id?: string
-          latitude: number
-          longitude: number
-          predicted_damage?: string | null
-          rainfall_mm?: number | null
-          rationale?: string | null
-          report_count?: number
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          risk_score?: number
-          updated_at?: string
-          weather_summary?: string | null
-          window_days?: number
-        }
-        Update: {
-          address?: string | null
-          avg_temp_c?: number | null
-          created_at?: string
-          expires_at?: string
-          id?: string
-          latitude?: number
-          longitude?: number
-          predicted_damage?: string | null
-          rainfall_mm?: number | null
-          rationale?: string | null
-          report_count?: number
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          risk_score?: number
-          updated_at?: string
-          weather_summary?: string | null
-          window_days?: number
-        }
-        Relationships: []
-      }
-      user_badges: {
-        Row: {
-          badge_key: string
-          earned_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          badge_key: string
-          earned_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          badge_key?: string
-          earned_at?: string
-          id?: string
           user_id?: string
         }
         Relationships: []
@@ -499,16 +228,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      award_points: {
-        Args: {
-          _points: number
-          _reason: string
-          _report_id?: string
-          _user_id: string
-        }
-        Returns: undefined
-      }
-      evaluate_badges: { Args: { _user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -516,24 +235,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      leaderboard: {
-        Args: { _limit?: number; _scope?: string }
-        Returns: {
-          avatar_url: string
-          city: string
-          full_name: string
-          points: number
-          rank: number
-          report_count: number
-          state: string
-          streak_days: number
-          user_id: string
-          username: string
-          weekly_points: number
-        }[]
-      }
-      username_available: { Args: { _username: string }; Returns: boolean }
-      vote_weight: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {
       app_role: "citizen" | "authority" | "admin"
@@ -547,14 +248,7 @@ export type Database = {
         | "bridge_damage"
         | "streetlight_failure"
         | "guardrail_damage"
-      notification_type:
-        | "hazard"
-        | "authority"
-        | "repair"
-        | "prediction"
-        | "community"
       repair_status: "pending" | "in_progress" | "resolved"
-      risk_level: "low" | "moderate" | "high" | "critical"
       severity_level: "minor" | "moderate" | "critical"
     }
     CompositeTypes: {
@@ -571,12 +265,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -600,11 +294,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -625,11 +319,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -650,11 +344,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -667,11 +361,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -695,15 +389,7 @@ export const Constants = {
         "streetlight_failure",
         "guardrail_damage",
       ],
-      notification_type: [
-        "hazard",
-        "authority",
-        "repair",
-        "prediction",
-        "community",
-      ],
       repair_status: ["pending", "in_progress", "resolved"],
-      risk_level: ["low", "moderate", "high", "critical"],
       severity_level: ["minor", "moderate", "critical"],
     },
   },
