@@ -53,6 +53,104 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_settings: {
+        Row: {
+          alert_radius_m: number
+          authority_alerts: boolean
+          created_at: string
+          hazard_proximity: boolean
+          prediction_warnings: boolean
+          repair_updates: boolean
+          updated_at: string
+          user_id: string
+          vote_activity: boolean
+          weekly_digest_email: boolean
+        }
+        Insert: {
+          alert_radius_m?: number
+          authority_alerts?: boolean
+          created_at?: string
+          hazard_proximity?: boolean
+          prediction_warnings?: boolean
+          repair_updates?: boolean
+          updated_at?: string
+          user_id: string
+          vote_activity?: boolean
+          weekly_digest_email?: boolean
+        }
+        Update: {
+          alert_radius_m?: number
+          authority_alerts?: boolean
+          created_at?: string
+          hazard_proximity?: boolean
+          prediction_warnings?: boolean
+          repair_updates?: boolean
+          updated_at?: string
+          user_id?: string
+          vote_activity?: boolean
+          weekly_digest_email?: boolean
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          latitude: number | null
+          location_label: string | null
+          longitude: number | null
+          read: boolean
+          report_id: string | null
+          reviewed: boolean
+          severity: Database["public"]["Enums"]["severity_level"] | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          location_label?: string | null
+          longitude?: number | null
+          read?: boolean
+          report_id?: string | null
+          reviewed?: boolean
+          severity?: Database["public"]["Enums"]["severity_level"] | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          location_label?: string | null
+          longitude?: number | null
+          read?: boolean
+          report_id?: string | null
+          reviewed?: boolean
+          severity?: Database["public"]["Enums"]["severity_level"] | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prediction_digests: {
         Row: {
           created_at: string
@@ -165,7 +263,9 @@ export type Database = {
       }
       reports: {
         Row: {
+          accident_count: number
           address: string | null
+          ai_confidence: number
           ai_suggestion: string | null
           ai_summary: string | null
           community_verified: boolean
@@ -179,16 +279,21 @@ export type Database = {
           longitude: number
           notes: string | null
           photos: string[]
+          priority_score: number
           report_count: number
           severity: Database["public"]["Enums"]["severity_level"]
           status: Database["public"]["Enums"]["repair_status"]
+          status_updated_at: string | null
+          status_updated_by: string | null
           tags: string[]
           updated_at: string
           upvotes: number
           user_id: string
         }
         Insert: {
+          accident_count?: number
           address?: string | null
+          ai_confidence?: number
           ai_suggestion?: string | null
           ai_summary?: string | null
           community_verified?: boolean
@@ -202,16 +307,21 @@ export type Database = {
           longitude: number
           notes?: string | null
           photos?: string[]
+          priority_score?: number
           report_count?: number
           severity?: Database["public"]["Enums"]["severity_level"]
           status?: Database["public"]["Enums"]["repair_status"]
+          status_updated_at?: string | null
+          status_updated_by?: string | null
           tags?: string[]
           updated_at?: string
           upvotes?: number
           user_id: string
         }
         Update: {
+          accident_count?: number
           address?: string | null
+          ai_confidence?: number
           ai_suggestion?: string | null
           ai_summary?: string | null
           community_verified?: boolean
@@ -225,9 +335,12 @@ export type Database = {
           longitude?: number
           notes?: string | null
           photos?: string[]
+          priority_score?: number
           report_count?: number
           severity?: Database["public"]["Enums"]["severity_level"]
           status?: Database["public"]["Enums"]["repair_status"]
+          status_updated_at?: string | null
+          status_updated_by?: string | null
           tags?: string[]
           updated_at?: string
           upvotes?: number
@@ -325,6 +438,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      vote_weight: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {
       app_role: "citizen" | "authority" | "admin"
@@ -338,6 +452,12 @@ export type Database = {
         | "bridge_damage"
         | "streetlight_failure"
         | "guardrail_damage"
+      notification_type:
+        | "hazard"
+        | "authority"
+        | "repair"
+        | "prediction"
+        | "community"
       repair_status: "pending" | "in_progress" | "resolved"
       risk_level: "low" | "moderate" | "high" | "critical"
       severity_level: "minor" | "moderate" | "critical"
@@ -479,6 +599,13 @@ export const Constants = {
         "bridge_damage",
         "streetlight_failure",
         "guardrail_damage",
+      ],
+      notification_type: [
+        "hazard",
+        "authority",
+        "repair",
+        "prediction",
+        "community",
       ],
       repair_status: ["pending", "in_progress", "resolved"],
       risk_level: ["low", "moderate", "high", "critical"],
