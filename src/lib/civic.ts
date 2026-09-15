@@ -41,3 +41,17 @@ export type CivicSubmission = {
   created_at: string;
   updated_at: string;
 };
+
+import { supabase } from "@/integrations/supabase/client";
+
+/** Complaint-tracking rows for one report (own reports, or any for authorities). */
+export async function fetchCivicSubmissions(reportId: string): Promise<CivicSubmission[]> {
+  const { data } = await supabase
+    .from("civic_submissions")
+    .select(
+      "id, report_id, portal, status, complaint_number, tracking_url, error_message, attempts, submitted_at, created_at, updated_at",
+    )
+    .eq("report_id", reportId)
+    .order("portal");
+  return (data ?? []) as CivicSubmission[];
+}

@@ -56,21 +56,39 @@ export async function uploadReport(draft: ReportDraft, userId: string) {
     paths.push(path);
   }
 
-  const { error } = await supabase.from("reports").insert({
-    user_id: userId,
-    latitude: draft.latitude,
-    longitude: draft.longitude,
-    address: draft.address,
-    damage_types: draft.damage_types,
-    severity: draft.severity,
-    confidence: draft.confidence,
-    ai_summary: draft.ai_summary || null,
-    ai_suggestion: draft.ai_suggestion || null,
-    notes: draft.notes || null,
-    tags: draft.tags,
-    photos: paths,
-  });
+  const { data, error } = await supabase
+    .from("reports")
+    .insert({
+      user_id: userId,
+      latitude: draft.latitude,
+      longitude: draft.longitude,
+      address: draft.address,
+      district: DEFAULT_DISTRICT,
+      damage_types: draft.damage_types,
+      severity: draft.severity,
+      bike_severity:
+        draft.bike_severity ?? deriveVehicleSeverity("bike", draft.severity, draft.damage_types),
+      car_severity:
+        draft.car_severity ?? deriveVehicleSeverity("car", draft.severity, draft.damage_types),
+      confidence: draft.confidence,
+      ai_summary: draft.ai_summary || null,
+      ai_suggestion: draft.ai_suggestion || null,
+      notes: draft.notes || null,
+      tags: draft.tags,
+      photos: paths,
+    })
+    .select("id")
+    .single();
   if (error) throw error;
+
+  // Background: file the complaint on the Lucknow civic portals.
+  try {
+    await fileCivicComplaints({ data: { reportId: data.id } });
+  } catch {
+    // The rows stay queued in civic_submissions and are retried later.
+  }
+
+  return data.id as string;
 }
 
 export async function syncPending(userId: string) {
