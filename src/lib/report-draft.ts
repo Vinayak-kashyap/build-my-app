@@ -4,6 +4,8 @@ export type ReportDraft = {
   photos: string[]; // data URLs
   damage_types: DamageType[];
   severity: Severity;
+  bike_severity: Severity;
+  car_severity: Severity;
   confidence: number;
   ai_summary: string;
   ai_suggestion: string;
@@ -20,6 +22,8 @@ export const emptyDraft: ReportDraft = {
   photos: [],
   damage_types: [],
   severity: "moderate",
+  bike_severity: "moderate",
+  car_severity: "moderate",
   confidence: 0,
   ai_summary: "",
   ai_suggestion: "",

@@ -16,6 +16,56 @@ export type Severity = (typeof SEVERITIES)[number];
 export const REPAIR_STATUSES = ["pending", "in_progress", "resolved"] as const;
 export type RepairStatus = (typeof REPAIR_STATUSES)[number];
 
+/** District-level pilot: RoadPulse currently covers Lucknow only. */
+export const DEFAULT_DISTRICT = "Lucknow";
+export const DEFAULT_STATE = "Uttar Pradesh";
+export const LUCKNOW_CENTER: [number, number] = [26.8467, 80.9462];
+/** Rough bounding box for the Lucknow district, used to keep reports in-scope. */
+export const LUCKNOW_BOUNDS = { minLat: 26.6, maxLat: 27.1, minLng: 80.7, maxLng: 81.2 };
+
+export function isInDistrict(lat: number, lng: number) {
+  return (
+    lat >= LUCKNOW_BOUNDS.minLat &&
+    lat <= LUCKNOW_BOUNDS.maxLat &&
+    lng >= LUCKNOW_BOUNDS.minLng &&
+    lng <= LUCKNOW_BOUNDS.maxLng
+  );
+}
+
+export const VEHICLES = ["bike", "car"] as const;
+export type Vehicle = (typeof VEHICLES)[number];
+
+export const VEHICLE_LABELS: Record<Vehicle, string> = {
+  bike: "Two-wheeler",
+  car: "Car / 4-wheeler",
+};
+
+/** Damage that is disproportionately dangerous for two-wheelers. */
+const BIKE_CRITICAL_TYPES: DamageType[] = ["pothole", "waterlogging", "drainage", "landslide"];
+/** Damage that mainly threatens larger vehicles / structural passage. */
+const CAR_CRITICAL_TYPES: DamageType[] = ["bridge_damage", "landslide", "guardrail_damage"];
+
+function bump(severity: Severity, steps: number): Severity {
+  const order: Severity[] = ["minor", "moderate", "critical"];
+  const index = Math.min(order.length - 1, Math.max(0, order.indexOf(severity) + steps));
+  return order[index];
+}
+
+/** Derive per-vehicle risk when the AI (or the reporter) hasn't set it explicitly. */
+export function deriveVehicleSeverity(
+  vehicle: Vehicle,
+  severity: Severity,
+  damageTypes: DamageType[],
+): Severity {
+  if (vehicle === "bike") {
+    return damageTypes.some((t) => BIKE_CRITICAL_TYPES.includes(t)) ? bump(severity, 1) : severity;
+  }
+  if (damageTypes.some((t) => CAR_CRITICAL_TYPES.includes(t))) return bump(severity, 1);
+  // Small potholes and cracks are usually survivable in a car.
+  if (damageTypes.every((t) => t === "pothole" || t === "crack")) return bump(severity, -1);
+  return severity;
+}
+
 export const QUICK_TAGS = [
   "Near School",
   "Near Hospital",
@@ -63,6 +113,9 @@ export type ReportRow = {
   address: string | null;
   damage_types: DamageType[];
   severity: Severity;
+  bike_severity: Severity | null;
+  car_severity: Severity | null;
+  district: string | null;
   confidence: number;
   ai_suggestion: string | null;
   ai_summary: string | null;

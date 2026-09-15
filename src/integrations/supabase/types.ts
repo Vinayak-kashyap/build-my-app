@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -52,6 +52,97 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      civic_submission_logs: {
+        Row: {
+          created_at: string
+          detail: Json | null
+          event: string
+          id: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json | null
+          event: string
+          id?: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json | null
+          event?: string
+          id?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "civic_submission_logs_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "civic_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      civic_submissions: {
+        Row: {
+          attempts: number
+          complaint_number: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          portal: Database["public"]["Enums"]["civic_portal"]
+          report_id: string
+          request_payload: Json
+          response_payload: Json | null
+          status: Database["public"]["Enums"]["civic_submission_status"]
+          submitted_at: string | null
+          tracking_url: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          complaint_number?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          portal: Database["public"]["Enums"]["civic_portal"]
+          report_id: string
+          request_payload?: Json
+          response_payload?: Json | null
+          status?: Database["public"]["Enums"]["civic_submission_status"]
+          submitted_at?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          complaint_number?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          portal?: Database["public"]["Enums"]["civic_portal"]
+          report_id?: string
+          request_payload?: Json
+          response_payload?: Json | null
+          status?: Database["public"]["Enums"]["civic_submission_status"]
+          submitted_at?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "civic_submissions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_settings: {
         Row: {
@@ -230,6 +321,7 @@ export type Database = {
           last_report_on: string | null
           longest_streak: number
           onboarding_completed: boolean
+          phone: string | null
           points: number
           region: string | null
           state: string | null
@@ -247,6 +339,7 @@ export type Database = {
           last_report_on?: string | null
           longest_streak?: number
           onboarding_completed?: boolean
+          phone?: string | null
           points?: number
           region?: string | null
           state?: string | null
@@ -264,6 +357,7 @@ export type Database = {
           last_report_on?: string | null
           longest_streak?: number
           onboarding_completed?: boolean
+          phone?: string | null
           points?: number
           region?: string | null
           state?: string | null
@@ -315,10 +409,13 @@ export type Database = {
           ai_confidence: number
           ai_suggestion: string | null
           ai_summary: string | null
+          bike_severity: Database["public"]["Enums"]["severity_level"] | null
+          car_severity: Database["public"]["Enums"]["severity_level"] | null
           community_verified: boolean
           confidence: number
           created_at: string
           damage_types: Database["public"]["Enums"]["damage_type"][]
+          district: string
           downvotes: number
           id: string
           is_flagged: boolean
@@ -343,10 +440,13 @@ export type Database = {
           ai_confidence?: number
           ai_suggestion?: string | null
           ai_summary?: string | null
+          bike_severity?: Database["public"]["Enums"]["severity_level"] | null
+          car_severity?: Database["public"]["Enums"]["severity_level"] | null
           community_verified?: boolean
           confidence?: number
           created_at?: string
           damage_types?: Database["public"]["Enums"]["damage_type"][]
+          district?: string
           downvotes?: number
           id?: string
           is_flagged?: boolean
@@ -371,10 +471,13 @@ export type Database = {
           ai_confidence?: number
           ai_suggestion?: string | null
           ai_summary?: string | null
+          bike_severity?: Database["public"]["Enums"]["severity_level"] | null
+          car_severity?: Database["public"]["Enums"]["severity_level"] | null
           community_verified?: boolean
           confidence?: number
           created_at?: string
           damage_types?: Database["public"]["Enums"]["damage_type"][]
+          district?: string
           downvotes?: number
           id?: string
           is_flagged?: boolean
@@ -538,6 +641,16 @@ export type Database = {
     Enums: {
       app_role: "citizen" | "authority" | "admin"
       authority_request_status: "pending" | "approved" | "rejected"
+      civic_portal:
+        | "everything_civic"
+        | "lucknow_smart_city"
+        | "lucknow_nagar_nigam"
+      civic_submission_status:
+        | "queued"
+        | "submitting"
+        | "submitted"
+        | "failed"
+        | "manual_required"
       damage_type:
         | "pothole"
         | "crack"
@@ -685,6 +798,18 @@ export const Constants = {
     Enums: {
       app_role: ["citizen", "authority", "admin"],
       authority_request_status: ["pending", "approved", "rejected"],
+      civic_portal: [
+        "everything_civic",
+        "lucknow_smart_city",
+        "lucknow_nagar_nigam",
+      ],
+      civic_submission_status: [
+        "queued",
+        "submitting",
+        "submitted",
+        "failed",
+        "manual_required",
+      ],
       damage_type: [
         "pothole",
         "crack",
