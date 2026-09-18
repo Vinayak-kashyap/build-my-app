@@ -99,6 +99,13 @@ function Register() {
       return;
     }
 
+    if (data.session && data.user) {
+      await supabase
+        .from("profiles")
+        .update({ phone: phone.trim(), city: "Lucknow", state: "Uttar Pradesh" })
+        .eq("id", data.user.id);
+    }
+
     if (role === "authority" && data.session && data.user) {
       let credentialPath: string | null = null;
       if (credential) {
