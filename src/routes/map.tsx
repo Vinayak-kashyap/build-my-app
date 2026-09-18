@@ -61,13 +61,14 @@ export const Route = createFileRoute("/map")({
   component: MapScreen,
 });
 
-const FALLBACK_CENTER: [number, number] = [12.9716, 77.5946];
+// District pilot: RoadPulse launches in Lucknow.
+const FALLBACK_CENTER: [number, number] = LUCKNOW_CENTER;
 const LAYER_ORDER: LayerMode[] = ["standard", "satellite", "heatmap"];
 
 function MapScreen() {
   const navigate = useNavigate();
   const { lat: focusLat, lng: focusLng } = Route.useSearch();
-  const { user, loading, role } = useAuth();
+  const { user, loading, role, isGuest } = useAuth();
   const [alertRadius, setAlertRadius] = useState<number>(DEFAULT_SETTINGS.alert_radius_m);
   const [hazardAlertsOn, setHazardAlertsOn] = useState(true);
 
@@ -93,8 +94,9 @@ function MapScreen() {
   const isAuthority = role === "authority" || role === "admin";
 
   useEffect(() => {
-    if (!loading && !user) void navigate({ to: "/login", replace: true });
-  }, [loading, user, navigate]);
+    // Guests may browse the map and navigate; only reporting needs an account.
+    if (!loading && !user && !isGuest) void navigate({ to: "/login", replace: true });
+  }, [loading, user, isGuest, navigate]);
 
   const load = useCallback(async () => {
     try {
