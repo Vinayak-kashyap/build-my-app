@@ -42,6 +42,7 @@ const inputClass =
 function Register() {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -60,6 +61,10 @@ function Register() {
     e.preventDefault();
     setError(null);
 
+    if (!/^\+?[0-9\s-]{10,15}$/.test(phone.trim())) {
+      setError("Enter a valid phone number.");
+      return;
+    }
     if (password !== confirm) {
       setError("Passwords do not match.");
       return;
@@ -83,7 +88,7 @@ function Register() {
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { full_name: fullName },
+        data: { full_name: fullName, phone: phone.trim() },
       },
     });
 
@@ -92,6 +97,13 @@ function Register() {
       setError(signUpError.message);
       toast.error("Registration failed", { description: signUpError.message });
       return;
+    }
+
+    if (data.session && data.user) {
+      await supabase
+        .from("profiles")
+        .update({ phone: phone.trim(), city: "Lucknow", state: "Uttar Pradesh" })
+        .eq("id", data.user.id);
     }
 
     if (role === "authority" && data.session && data.user) {
@@ -158,6 +170,26 @@ function Register() {
             className={inputClass}
             placeholder="Alex Mehta"
           />
+        </div>
+
+        <div>
+          <label htmlFor="phone" className="text-sm font-medium text-foreground">
+            Phone Number
+          </label>
+          <input
+            id="phone"
+            type="tel"
+            required
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className={inputClass}
+            placeholder="+91 98765 43210"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Used on civic complaints filed for your reports.
+          </p>
         </div>
 
         <div>

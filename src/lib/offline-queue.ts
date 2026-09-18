@@ -1,6 +1,8 @@
 import { openDB, type IDBPDatabase } from "idb";
 import { supabase } from "@/integrations/supabase/client";
 import { dataUrlToBlob, type ReportDraft } from "@/lib/report-draft";
+import { DEFAULT_DISTRICT, deriveVehicleSeverity } from "@/lib/roadpulse";
+import { fileCivicComplaints } from "@/lib/civic.functions";
 
 const DB_NAME = "roadpulse";
 const STORE = "pending-reports";

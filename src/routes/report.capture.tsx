@@ -3,12 +3,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ImageIcon, Loader2, X, Zap, ZapOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import { detectDamage, type DamageDetection } from "@/lib/ai-detect.functions";
 import { compressImage, emptyDraft, loadDraft, saveDraft } from "@/lib/report-draft";
 import {
   DAMAGE_LABELS,
+  deriveVehicleSeverity,
   SEVERITY_LABELS,
   SEVERITY_TOKEN,
+  VEHICLE_LABELS,
   type DamageType,
   type Severity,
 } from "@/lib/roadpulse";
@@ -35,6 +38,16 @@ type Phase = "camera" | "analyzing" | "result" | "error";
 
 function CaptureScreen() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+
+  // Reporting requires an account — guests are sent to sign in.
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast.message("Sign in to report road damage");
+      void navigate({ to: "/login", replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -131,6 +144,22 @@ function CaptureScreen() {
         ? ((detection?.damage_types ?? []) as DamageType[])
         : (["pothole"] as DamageType[]),
       severity: useAi ? ((detection?.severity ?? "moderate") as Severity) : "moderate",
+      bike_severity: useAi
+        ? ((detection?.bike_severity ??
+            deriveVehicleSeverity(
+              "bike",
+              (detection?.severity ?? "moderate") as Severity,
+              (detection?.damage_types ?? []) as DamageType[],
+            )) as Severity)
+        : "moderate",
+      car_severity: useAi
+        ? ((detection?.car_severity ??
+            deriveVehicleSeverity(
+              "car",
+              (detection?.severity ?? "moderate") as Severity,
+              (detection?.damage_types ?? []) as DamageType[],
+            )) as Severity)
+        : "moderate",
       confidence: useAi ? (detection?.confidence ?? 0) : 0,
       ai_summary: useAi ? (detection?.summary ?? "") : "",
       ai_suggestion: useAi ? (detection?.repair_suggestion ?? "") : "",
@@ -288,6 +317,28 @@ function CaptureScreen() {
                       <span className="data-mono text-xs text-accent">
                         {detection.confidence}%
                       </span>
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      {(
+                        [
+                          ["bike", detection.bike_severity],
+                          ["car", detection.car_severity],
+                        ] as const
+                      ).map(([vehicle, value]) => {
+                        const level = (value ?? severity) as Severity;
+                        return (
+                          <span
+                            key={vehicle}
+                            className="flex-1 rounded-lg px-2 py-1 text-[11px] font-semibold"
+                            style={{
+                              color: SEVERITY_TOKEN[level],
+                              backgroundColor: `color-mix(in oklab, ${SEVERITY_TOKEN[level]} 14%, transparent)`,
+                            }}
+                          >
+                            {VEHICLE_LABELS[vehicle]}: {SEVERITY_LABELS[level]}
+                          </span>
+                        );
+                      })}
                     </div>
                     <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
                       {detection.repair_suggestion}

@@ -12,10 +12,15 @@ export type Profile = {
   avatar_url: string | null;
   bio: string | null;
   region: string | null;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
   points: number;
   streak_days: number;
   onboarding_completed: boolean;
 };
+
+const GUEST_KEY = "roadpulse.guest";
 
 type AuthContextValue = {
   session: Session | null;
@@ -24,6 +29,10 @@ type AuthContextValue = {
   roles: AppRole[];
   role: AppRole;
   loading: boolean;
+  /** Browsing without an account: map + navigation only, no reporting. */
+  isGuest: boolean;
+  startGuest: () => void;
+  endGuest: () => void;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -41,13 +50,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
+
+  useEffect(() => {
+    setIsGuest(localStorage.getItem(GUEST_KEY) === "1");
+  }, []);
+
+  const startGuest = useCallback(() => {
+    localStorage.setItem(GUEST_KEY, "1");
+    setIsGuest(true);
+  }, []);
+
+  const endGuest = useCallback(() => {
+    localStorage.removeItem(GUEST_KEY);
+    setIsGuest(false);
+  }, []);
 
   const loadUserData = useCallback(async (userId: string) => {
     const [{ data: profileRow }, { data: roleRows }] = await Promise.all([
       supabase
         .from("profiles")
         .select(
-          "id, full_name, username, avatar_url, bio, region, points, streak_days, onboarding_completed",
+          "id, full_name, username, avatar_url, bio, region, phone, city, state, points, streak_days, onboarding_completed",
         )
         .eq("id", userId)
         .maybeSingle(),
@@ -93,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, loadUserData]);
 
   const signOut = useCallback(async () => {
+    localStorage.removeItem(GUEST_KEY);
+    setIsGuest(false);
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
@@ -107,10 +133,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       roles,
       role: highestRole(roles),
       loading,
+      isGuest,
+      startGuest,
+      endGuest,
       refreshProfile,
       signOut,
     }),
-    [session, profile, roles, loading, refreshProfile, signOut],
+    [session, profile, roles, loading, isGuest, startGuest, endGuest, refreshProfile, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

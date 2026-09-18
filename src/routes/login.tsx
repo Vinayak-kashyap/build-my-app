@@ -24,7 +24,7 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, startGuest, endGuest } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -39,6 +39,7 @@ function Login() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    endGuest();
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (signInError) {
@@ -138,6 +139,22 @@ function Login() {
         <GoogleIcon className="h-5 w-5" />
         Sign in with Google
       </button>
+
+      <button
+        onClick={() => {
+          startGuest();
+          toast.message("Browsing as guest", {
+            description: "You can view road conditions and navigate. Sign in to report damage.",
+          });
+          void navigate({ to: "/map", replace: true });
+        }}
+        className="tap-target mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border px-5 py-3.5 text-sm font-semibold text-muted-foreground"
+      >
+        Continue as Guest
+      </button>
+      <p className="mt-2 text-center text-xs text-muted-foreground">
+        Guests can view road conditions and navigate — reporting needs an account.
+      </p>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Don't have an account?{" "}
