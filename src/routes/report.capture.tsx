@@ -3,12 +3,15 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ImageIcon, Loader2, X, Zap, ZapOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import { detectDamage, type DamageDetection } from "@/lib/ai-detect.functions";
 import { compressImage, emptyDraft, loadDraft, saveDraft } from "@/lib/report-draft";
 import {
   DAMAGE_LABELS,
+  deriveVehicleSeverity,
   SEVERITY_LABELS,
   SEVERITY_TOKEN,
+  VEHICLE_LABELS,
   type DamageType,
   type Severity,
 } from "@/lib/roadpulse";
@@ -35,6 +38,16 @@ type Phase = "camera" | "analyzing" | "result" | "error";
 
 function CaptureScreen() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+
+  // Reporting requires an account — guests are sent to sign in.
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast.message("Sign in to report road damage");
+      void navigate({ to: "/login", replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
