@@ -131,6 +131,22 @@ function CaptureScreen() {
         ? ((detection?.damage_types ?? []) as DamageType[])
         : (["pothole"] as DamageType[]),
       severity: useAi ? ((detection?.severity ?? "moderate") as Severity) : "moderate",
+      bike_severity: useAi
+        ? ((detection?.bike_severity ??
+            deriveVehicleSeverity(
+              "bike",
+              (detection?.severity ?? "moderate") as Severity,
+              (detection?.damage_types ?? []) as DamageType[],
+            )) as Severity)
+        : "moderate",
+      car_severity: useAi
+        ? ((detection?.car_severity ??
+            deriveVehicleSeverity(
+              "car",
+              (detection?.severity ?? "moderate") as Severity,
+              (detection?.damage_types ?? []) as DamageType[],
+            )) as Severity)
+        : "moderate",
       confidence: useAi ? (detection?.confidence ?? 0) : 0,
       ai_summary: useAi ? (detection?.summary ?? "") : "",
       ai_suggestion: useAi ? (detection?.repair_suggestion ?? "") : "",
