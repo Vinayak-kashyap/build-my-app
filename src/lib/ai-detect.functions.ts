@@ -11,6 +11,8 @@ const inputSchema = z.object({
 export type DamageDetection = {
   damage_types: string[];
   severity: string;
+  bike_severity: string;
+  car_severity: string;
   confidence: number;
   summary: string;
   repair_suggestion: string;
@@ -19,7 +21,10 @@ export type DamageDetection = {
 
 const systemPrompt = `You are RoadPulse Vision, a civil-engineering assistant that inspects photographs of roads.
 Classify visible road damage. Damage types allowed: ${DAMAGE_TYPES.join(", ")}.
-Severity must be one of: ${SEVERITIES.join(", ")}. Judge severity from damage area, apparent depth,
+Severity must be one of: ${SEVERITIES.join(", ")}. Report THREE severities: an overall one,
+bike_severity (risk to a two-wheeler rider — potholes, waterlogging, loose gravel and open drains are
+far more dangerous here) and car_severity (risk to a four-wheeler — structural failures, bridge damage
+and deep flooding matter most; shallow potholes are usually milder). Judge severity from damage area, apparent depth,
 water coverage and risk to vehicles. Confidence is 0-100. Keep the summary under 20 words and the
 repair suggestion a single concrete action (e.g. cold-mix patching, full resurfacing, drainage clearing,
 guardrail replacement). If the photo does not show a road surface, set is_road false and confidence low.`;
@@ -63,6 +68,8 @@ export const detectDamage = createServerFn({ method: "POST" })
                     items: { type: "string", enum: [...DAMAGE_TYPES] },
                   },
                   severity: { type: "string", enum: [...SEVERITIES] },
+                  bike_severity: { type: "string", enum: [...SEVERITIES] },
+                  car_severity: { type: "string", enum: [...SEVERITIES] },
                   confidence: { type: "number" },
                   summary: { type: "string" },
                   repair_suggestion: { type: "string" },
@@ -71,6 +78,8 @@ export const detectDamage = createServerFn({ method: "POST" })
                 required: [
                   "damage_types",
                   "severity",
+                  "bike_severity",
+                  "car_severity",
                   "confidence",
                   "summary",
                   "repair_suggestion",
@@ -100,5 +109,7 @@ export const detectDamage = createServerFn({ method: "POST" })
       ...parsed,
       confidence: Math.max(0, Math.min(100, Math.round(parsed.confidence))),
       damage_types: parsed.damage_types?.length ? parsed.damage_types : ["pothole"],
+      bike_severity: parsed.bike_severity ?? parsed.severity,
+      car_severity: parsed.car_severity ?? parsed.severity,
     };
   });
