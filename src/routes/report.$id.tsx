@@ -13,6 +13,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { castVote, signedPhotoUrls } from "@/lib/reports";
 import {
+  CIVIC_PORTAL_LABELS,
+  CIVIC_STATUS_LABELS,
+  fetchCivicSubmissions,
+  type CivicSubmission,
+} from "@/lib/civic";
+import {
   DAMAGE_LABELS,
   SEVERITY_LABELS,
   STATUS_LABELS,
@@ -61,6 +67,7 @@ function ReportDetailScreen() {
   const [index, setIndex] = useState(0);
   const [myVote, setMyVote] = useState(0);
   const [submitter, setSubmitter] = useState<string | null>(null);
+  const [civic, setCivic] = useState<CivicSubmission[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -73,6 +80,7 @@ function ReportDetailScreen() {
       setLoading(false);
       if (!row) return;
       void signedPhotoUrls(row.photos).then((urls) => active && setPhotos(urls));
+      void fetchCivicSubmissions(row.id).then((rows) => active && setCivic(rows));
       void supabase
         .from("profiles")
         .select("full_name, username")
@@ -292,6 +300,49 @@ function ReportDetailScreen() {
             ))}
           </ol>
         </div>
+
+        {civic.length ? (
+          <div className="rounded-2xl border border-border bg-surface p-4">
+            <h2 className="mb-1 text-sm font-bold text-foreground">Civic Complaints</h2>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Filed automatically with Lucknow civic bodies on your behalf.
+            </p>
+            <ul className="space-y-2">
+              {civic.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex items-start justify-between gap-3 rounded-xl bg-surface-elevated px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {CIVIC_PORTAL_LABELS[row.portal] ?? row.portal}
+                    </p>
+                    {row.complaint_number ? (
+                      <p className="data-mono text-xs text-accent">#{row.complaint_number}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {row.error_message ?? "Awaiting a complaint number"}
+                      </p>
+                    )}
+                    {row.tracking_url ? (
+                      <a
+                        href={row.tracking_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-semibold text-accent"
+                      >
+                        Track complaint
+                      </a>
+                    ) : null}
+                  </div>
+                  <span className="shrink-0 rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                    {CIVIC_STATUS_LABELS[row.status] ?? row.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         <div className="rounded-2xl border border-border bg-surface p-4">
           <h2 className="mb-3 text-sm font-bold text-foreground">Community Reactions</h2>
