@@ -271,6 +271,26 @@ function SubmitScreen() {
                   <span className="data-mono text-xs text-accent">{draft.confidence}%</span>
                 ) : null}
               </div>
+              <div className="flex gap-2">
+                {VEHICLES.map((vehicle) => {
+                  const level =
+                    vehicle === "bike"
+                      ? (draft.bike_severity ?? draft.severity)
+                      : (draft.car_severity ?? draft.severity);
+                  return (
+                    <span
+                      key={vehicle}
+                      className="flex-1 rounded-lg px-2 py-1 text-[11px] font-semibold"
+                      style={{
+                        color: SEVERITY_TOKEN[level],
+                        backgroundColor: `color-mix(in oklab, ${SEVERITY_TOKEN[level]} 14%, transparent)`,
+                      }}
+                    >
+                      {VEHICLE_LABELS[vehicle]}: {SEVERITY_LABELS[level]}
+                    </span>
+                  );
+                })}
+              </div>
               {draft.ai_suggestion ? (
                 <p className="text-xs text-muted-foreground">{draft.ai_suggestion}</p>
               ) : null}

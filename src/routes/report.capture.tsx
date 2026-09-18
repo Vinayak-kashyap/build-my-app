@@ -318,6 +318,28 @@ function CaptureScreen() {
                         {detection.confidence}%
                       </span>
                     </div>
+                    <div className="mt-2 flex gap-2">
+                      {(
+                        [
+                          ["bike", detection.bike_severity],
+                          ["car", detection.car_severity],
+                        ] as const
+                      ).map(([vehicle, value]) => {
+                        const level = (value ?? severity) as Severity;
+                        return (
+                          <span
+                            key={vehicle}
+                            className="flex-1 rounded-lg px-2 py-1 text-[11px] font-semibold"
+                            style={{
+                              color: SEVERITY_TOKEN[level],
+                              backgroundColor: `color-mix(in oklab, ${SEVERITY_TOKEN[level]} 14%, transparent)`,
+                            }}
+                          >
+                            {VEHICLE_LABELS[vehicle]}: {SEVERITY_LABELS[level]}
+                          </span>
+                        );
+                      })}
+                    </div>
                     <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground">
                       {detection.repair_suggestion}
                     </p>
