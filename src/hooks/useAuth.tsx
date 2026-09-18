@@ -117,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, loadUserData]);
 
   const signOut = useCallback(async () => {
+    localStorage.removeItem(GUEST_KEY);
+    setIsGuest(false);
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
