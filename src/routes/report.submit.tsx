@@ -16,11 +16,14 @@ import { reverseGeocode } from "@/lib/reports";
 import {
   DAMAGE_LABELS,
   DAMAGE_TYPES,
+  deriveVehicleSeverity,
   formatCoords,
   QUICK_TAGS,
   SEVERITIES,
   SEVERITY_LABELS,
   SEVERITY_TOKEN,
+  VEHICLE_LABELS,
+  VEHICLES,
   type DamageType,
   type Severity,
 } from "@/lib/roadpulse";
@@ -154,7 +157,9 @@ function SubmitScreen() {
         toast.success("Saved offline — it'll sync automatically");
       } else {
         await uploadReport(draft, user.id);
-        toast.success("Report submitted. Thank you!");
+        toast.success("Report submitted. Thank you!", {
+          description: "We're filing the civic complaints — track them on the report page.",
+        });
       }
       clearDraft();
       void navigate({ to: "/map" });
@@ -304,10 +309,15 @@ function SubmitScreen() {
                     <button
                       key={type}
                       onClick={() =>
-                        setDraft((d) => ({
-                          ...d,
-                          damage_types: toggle(d.damage_types, type as DamageType),
-                        }))
+                        setDraft((d) => {
+                          const damage_types = toggle(d.damage_types, type as DamageType);
+                          return {
+                            ...d,
+                            damage_types,
+                            bike_severity: deriveVehicleSeverity("bike", d.severity, damage_types),
+                            car_severity: deriveVehicleSeverity("car", d.severity, damage_types),
+                          };
+                        })
                       }
                       aria-pressed={active}
                       className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
@@ -327,7 +337,22 @@ function SubmitScreen() {
                   return (
                     <button
                       key={severity}
-                      onClick={() => setDraft((d) => ({ ...d, severity: severity as Severity }))}
+                      onClick={() =>
+                        setDraft((d) => ({
+                          ...d,
+                          severity: severity as Severity,
+                          bike_severity: deriveVehicleSeverity(
+                            "bike",
+                            severity as Severity,
+                            d.damage_types,
+                          ),
+                          car_severity: deriveVehicleSeverity(
+                            "car",
+                            severity as Severity,
+                            d.damage_types,
+                          ),
+                        }))
+                      }
                       aria-pressed={active}
                       className="flex-1 rounded-xl px-3 py-2 text-xs font-bold"
                       style={{
