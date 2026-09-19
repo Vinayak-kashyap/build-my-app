@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { CivicPortal } from "@/lib/civic";
 
 const reportInput = z.object({ reportId: z.string().uuid() });
 
@@ -15,7 +16,7 @@ export const fileCivicComplaints = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { submitToPortal } = await import("@/lib/civic.server");
-    const { CIVIC_PORTAL_LABELS, type CivicPortal } = await import("@/lib/civic");
+    const { CIVIC_PORTAL_LABELS } = await import("@/lib/civic");
 
     const { data: report, error: reportError } = await supabase
       .from("reports")
