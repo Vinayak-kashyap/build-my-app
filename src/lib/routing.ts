@@ -1,4 +1,10 @@
-import { distanceMeters, severityWeight, type ReportRow } from "@/lib/roadpulse";
+import {
+  distanceMeters,
+  severityWeight,
+  type ReportRow,
+  type Severity,
+  type Vehicle,
+} from "@/lib/roadpulse";
 
 export type LatLng = { lat: number; lng: number };
 
@@ -13,18 +19,29 @@ export type RouteHazard = {
   report: ReportRow;
   /** metres along the route where the hazard sits */
   along: number;
+  /** severity as experienced by the selected vehicle */
+  severity: Severity;
 };
 
 export type ScoredRoute = {
   id: string;
   coordinates: LatLng[];
   distance: number;
+  /** raw OSRM driving time, seconds */
   duration: number;
+  /** duration plus slow-down caused by the road condition, seconds */
+  adjustedDuration: number;
+  /** seconds lost to hazards on this route */
+  delaySeconds: number;
   steps: RouteStep[];
   hazards: RouteHazard[];
   healthScore: number;
   avoidsDamage: boolean;
+  /** hazard counts by vehicle-specific severity */
+  counts: Record<Severity, number>;
+  vehicle: Vehicle;
 };
+
 
 const OSRM = "https://router.project-osrm.org/route/v1/driving";
 
