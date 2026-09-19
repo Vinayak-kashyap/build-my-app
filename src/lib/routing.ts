@@ -114,14 +114,35 @@ function metresAlong(point: LatLng, path: LatLng[]) {
   return bestAt;
 }
 
+/** Severity of a report as experienced by the chosen vehicle. */
+export function severityFor(report: ReportRow, vehicle: Vehicle): Severity {
+  const explicit = vehicle === "bike" ? report.bike_severity : report.car_severity;
+  if (explicit) return explicit;
+  return deriveVehicleSeverity(vehicle, report.severity, report.damage_types);
+}
+
+/** Seconds lost crossing one hazard — two-wheelers slow harder for surface damage. */
+const DELAY_SECONDS: Record<Severity, number> = { minor: 10, moderate: 35, critical: 90 };
+
+export function hazardDelay(hazards: RouteHazard[], vehicle: Vehicle) {
+  return Math.round(
+    hazards.reduce((sum, h) => {
+      const base = DELAY_SECONDS[h.severity];
+      const verified = h.report.community_verified ? 1.2 : 1;
+      const vehicleFactor = vehicle === "bike" ? 1.15 : 1;
+      return sum + base * verified * vehicleFactor;
+    }, 0),
+  );
+}
+
 /**
- * Route Health Score: 100 = pristine. Each on-route hazard subtracts by severity,
- * scaled down on long routes so a single pothole doesn't tank a 40 km trip.
+ * Route Health Score: 100 = pristine. Each on-route hazard subtracts by the
+ * severity that vehicle actually faces, scaled down on long routes.
  */
 export function scoreRoute(hazards: RouteHazard[], distance: number) {
   const km = Math.max(1, distance / 1000);
   const penalty = hazards.reduce((sum, h) => {
-    const base = severityWeight(h.report.severity) * 9;
+    const base = severityWeight(h.severity) * 9;
     const verified = h.report.community_verified ? 1.25 : 1;
     const resolved = h.report.status === "resolved" ? 0.2 : 1;
     return sum + base * verified * resolved;
@@ -130,7 +151,11 @@ export function scoreRoute(hazards: RouteHazard[], distance: number) {
   return Math.max(0, Math.min(100, Math.round(100 - scaled)));
 }
 
-export function hazardsOnRoute(coordinates: LatLng[], reports: ReportRow[]): RouteHazard[] {
+export function hazardsOnRoute(
+  coordinates: LatLng[],
+  reports: ReportRow[],
+  vehicle: Vehicle,
+): RouteHazard[] {
   const sampled = coordinates.filter((_, i) => i % 2 === 0 || i === coordinates.length - 1);
   return reports
     .filter((r) => r.status !== "resolved")
@@ -141,10 +166,12 @@ export function hazardsOnRoute(coordinates: LatLng[], reports: ReportRow[]): Rou
     .filter((h) => h.distance <= HAZARD_CORRIDOR_M)
     .map(({ report }) => ({
       report,
+      severity: severityFor(report, vehicle),
       along: metresAlong({ lat: report.latitude, lng: report.longitude }, coordinates),
     }))
     .sort((a, b) => a.along - b.along);
 }
+
 
 async function osrmRoutes(points: LatLng[], alternatives: boolean) {
   const coords = points.map((p) => `${p.lng},${p.lat}`).join(";");
