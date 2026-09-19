@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { CivicPortal } from "@/lib/civic";
 
 const reportInput = z.object({ reportId: z.string().uuid() });
 
@@ -15,7 +16,7 @@ export const fileCivicComplaints = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { submitToPortal } = await import("@/lib/civic.server");
-    const { CIVIC_PORTAL_LABELS, type CivicPortal } = await import("@/lib/civic");
+    const { CIVIC_PORTAL_LABELS } = await import("@/lib/civic");
 
     const { data: report, error: reportError } = await supabase
       .from("reports")
@@ -84,15 +85,15 @@ export const fileCivicComplaints = createServerFn({ method: "POST" })
           error_message: result.error_message,
           attempts: (row.attempts ?? 0) + 1,
           request_payload: payload,
-          response_payload: result.response ? { body: result.response } : null,
+          response_payload: result.response ? { body: String(result.response) } : null,
           submitted_at: result.status === "submitted" ? new Date().toISOString() : null,
         })
         .eq("id", row.id);
 
       await supabase.from("civic_submission_logs").insert({
         submission_id: row.id,
-        status: result.status,
-        message:
+        event: result.status,
+        detail:
           result.error_message ??
           `${CIVIC_PORTAL_LABELS[portal]} accepted the complaint${
             result.complaint_number ? ` (#${result.complaint_number})` : ""

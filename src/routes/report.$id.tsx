@@ -21,7 +21,10 @@ import {
 import {
   DAMAGE_LABELS,
   SEVERITY_LABELS,
+  SEVERITY_TOKEN,
   STATUS_LABELS,
+  VEHICLE_LABELS,
+  VEHICLES,
   formatCoords,
   markerToken,
   timeAgo,

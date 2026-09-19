@@ -7,20 +7,20 @@ import { useTheme } from "@/hooks/useTheme";
 
 /** Daylight basemaps — swapped in when the app is in the bright/auto-day theme. */
 const LIGHT_TILES: Partial<Record<LayerMode, string>> = {
-  standard: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  heatmap: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+  standard: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  heatmap: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 };
 
 export type LayerMode = "standard" | "satellite" | "heatmap";
 
 const TILES: Record<LayerMode, { url: string; attribution: string }> = {
   standard: {
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    attribution: "&copy; OpenStreetMap &copy; CARTO",
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "&copy; OpenStreetMap contributors",
   },
   heatmap: {
-    url: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
-    attribution: "&copy; OpenStreetMap &copy; CARTO",
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "&copy; OpenStreetMap contributors",
   },
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",

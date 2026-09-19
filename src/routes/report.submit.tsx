@@ -102,7 +102,7 @@ function SubmitScreen() {
         [draft.latitude!, draft.longitude!],
         17,
       );
-      L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png", {
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 20,
       }).addTo(map);
       const marker = L.marker([draft.latitude!, draft.longitude!], { draggable: true }).addTo(map);
