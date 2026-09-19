@@ -193,10 +193,14 @@ function offsetPoint(point: LatLng, headingDeg: number, metres: number): LatLng 
 
 type OsrmRoute = NonNullable<OsrmResponse["routes"]>[number];
 
-function toScored(route: OsrmRoute, reports: ReportRow[], id: string): ScoredRoute {
-
+function toScored(
+  route: OsrmRoute,
+  reports: ReportRow[],
+  id: string,
+  vehicle: Vehicle,
+): ScoredRoute {
   const coordinates = route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
-  const hazards = hazardsOnRoute(coordinates, reports);
+  const hazards = hazardsOnRoute(coordinates, reports, vehicle);
   const steps: RouteStep[] = route.legs
     .flatMap((leg) => leg.steps)
     .map((step) => ({
@@ -205,15 +209,25 @@ function toScored(route: OsrmRoute, reports: ReportRow[], id: string): ScoredRou
       name: step.name,
       location: { lat: step.maneuver.location[1], lng: step.maneuver.location[0] },
     }));
+  const counts: Record<Severity, number> = { minor: 0, moderate: 0, critical: 0 };
+  for (const h of hazards) counts[h.severity] += 1;
+  // Two-wheelers are slower on damaged surfaces but quicker in traffic; cars are
+  // the OSRM baseline. Both then pay the per-hazard slow-down.
+  const baseDuration = vehicle === "bike" ? route.duration * 0.92 : route.duration;
+  const delaySeconds = hazardDelay(hazards, vehicle);
   return {
     id,
     coordinates,
     distance: route.distance,
-    duration: route.duration,
+    duration: Math.round(baseDuration),
+    adjustedDuration: Math.round(baseDuration + delaySeconds),
+    delaySeconds,
     steps,
     hazards,
+    counts,
+    vehicle,
     healthScore: scoreRoute(hazards, route.distance),
-    avoidsDamage: !hazards.some((h) => h.report.severity !== "minor"),
+    avoidsDamage: !hazards.some((h) => h.severity !== "minor"),
   };
 }
 
@@ -221,36 +235,42 @@ export async function fetchRoutes(
   from: LatLng,
   to: LatLng,
   reports: ReportRow[],
-  options: { emergency?: boolean } = {},
+  options: { emergency?: boolean; vehicle?: Vehicle } = {},
 ): Promise<ScoredRoute[]> {
-  const base = (await osrmRoutes([from, to], true)).map((r, i) => toScored(r, reports, `route-${i}`));
+  const vehicle: Vehicle = options.vehicle ?? "car";
+  const base = (await osrmRoutes([from, to], true)).map((r, i) =>
+    toScored(r, reports, `route-${i}`, vehicle),
+  );
 
-  // Damage-aware detours: when every OSRM alternative still crosses Yellow/Red
-  // damage, re-ask for routes through waypoints offset away from the worst hazard.
+  // Damage-aware detours: whenever OSRM gives us fewer than three options, or the
+  // options all cross Yellow/Red damage, ask for paths around the worst hazard.
   let detours: ScoredRoute[] = [];
   const needsDetour =
-    !options.emergency && base.every((r) => r.hazards.some((h) => h.report.severity !== "minor"));
+    base.length < 3 ||
+    (!options.emergency && base.every((r) => r.hazards.some((h) => h.severity !== "minor")));
   if (needsDetour) {
-    const worst = base[0].hazards
-      .filter((h) => h.report.severity !== "minor")
-      .sort((a, b) => severityWeight(b.report.severity) - severityWeight(a.report.severity))[0];
-    if (worst) {
-      const hazardPoint = { lat: worst.report.latitude, lng: worst.report.longitude };
-      const travel = bearing(from, to);
-      const candidates = await Promise.allSettled(
-        [90, -90].flatMap((side) =>
-          [350, 700].map((dist) =>
-            osrmRoutes([from, offsetPoint(hazardPoint, travel + side, dist), to], false),
-          ),
+    const worst =
+      base[0].hazards
+        .filter((h) => h.severity !== "minor")
+        .sort((a, b) => severityWeight(b.severity) - severityWeight(a.severity))[0] ?? null;
+    const midpoint = { lat: (from.lat + to.lat) / 2, lng: (from.lng + to.lng) / 2 };
+    const pivot = worst
+      ? { lat: worst.report.latitude, lng: worst.report.longitude }
+      : midpoint;
+    const travel = bearing(from, to);
+    const candidates = await Promise.allSettled(
+      [90, -90].flatMap((side) =>
+        [400, 900].map((dist) =>
+          osrmRoutes([from, offsetPoint(pivot, travel + side, dist), to], false),
         ),
-      );
-      detours = candidates
-        .filter(
-          (c): c is PromiseFulfilledResult<Awaited<ReturnType<typeof osrmRoutes>>> =>
-            c.status === "fulfilled",
-        )
-        .map((c, i) => toScored(c.value[0], reports, `detour-${i}`));
-    }
+      ),
+    );
+    detours = candidates
+      .filter(
+        (c): c is PromiseFulfilledResult<Awaited<ReturnType<typeof osrmRoutes>>> =>
+          c.status === "fulfilled",
+      )
+      .map((c, i) => toScored(c.value[0], reports, `detour-${i}`, vehicle));
   }
 
   // De-duplicate near-identical geometries by distance signature.
@@ -263,12 +283,16 @@ export async function fetchRoutes(
   });
 
   const sorted = options.emergency
-    ? unique.sort((a, b) => a.duration - b.duration)
-    : // Damage-aware ordering: healthiest route first, ties broken by time.
-      unique.sort((a, b) => b.healthScore - a.healthScore || a.duration - b.duration);
+    ? unique.sort((a, b) => a.adjustedDuration - b.adjustedDuration)
+    : // Damage-aware ordering: best blend of road health and realistic arrival time.
+      unique.sort(
+        (a, b) =>
+          a.adjustedDuration + (100 - a.healthScore) * 6 -
+          (b.adjustedDuration + (100 - b.healthScore) * 6),
+      );
 
   return sorted.slice(0, 3).map((r, i) => ({ ...r, id: `route-${i}` }));
-}
+
 
 
 export function formatDuration(seconds: number) {
