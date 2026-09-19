@@ -235,6 +235,27 @@ function ReportDetailScreen() {
           ) : null}
         </div>
 
+        <div className="flex gap-2">
+          {VEHICLES.map((vehicle) => {
+            const level =
+              (vehicle === "bike" ? report.bike_severity : report.car_severity) ?? report.severity;
+            return (
+              <div
+                key={vehicle}
+                className="flex-1 rounded-xl px-3 py-2"
+                style={{
+                  background: `color-mix(in srgb, ${SEVERITY_TOKEN[level]} 14%, transparent)`,
+                }}
+              >
+                <p className="text-[11px] text-muted-foreground">{VEHICLE_LABELS[vehicle]}</p>
+                <p className="text-sm font-bold" style={{ color: SEVERITY_TOKEN[level] }}>
+                  {SEVERITY_LABELS[level]} risk
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
         <div>
           <div className="mb-1 flex justify-between text-xs text-muted-foreground">
             <span>Confidence score</span>
