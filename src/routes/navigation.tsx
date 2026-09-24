@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUpDown,
+  Bike,
+  Car,
   ChevronLeft,
   Gauge,
   Loader2,
@@ -18,10 +20,14 @@ import { DEFAULT_FILTERS, fetchReports, searchPlaces } from "@/lib/reports";
 import {
   DAMAGE_LABELS,
   SEVERITY_LABELS,
+  SEVERITY_TOKEN,
+  VEHICLES,
+  VEHICLE_LABELS,
   distanceMeters,
   formatDistance,
   markerToken,
   type ReportRow,
+  type Vehicle,
 } from "@/lib/roadpulse";
 import {
   bearing,
@@ -31,6 +37,7 @@ import {
   type LatLng,
   type ScoredRoute,
 } from "@/lib/routing";
+
 import { z } from "zod";
 
 const searchSchema = z.object({
