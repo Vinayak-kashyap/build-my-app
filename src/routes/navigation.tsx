@@ -574,13 +574,19 @@ function NavigationScreen() {
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-base font-bold text-foreground">
-                        {formatDuration(route.duration)}
+                        Route {index + 1} · {formatDuration(route.adjustedDuration)}
                       </span>
                       <span className="data-mono text-xs text-muted-foreground">
                         {formatDistance(route.distance)}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
+                    <p className="data-mono mt-0.5 text-[11px] text-muted-foreground">
+                      {formatDuration(route.duration)} clear road
+                      {route.delaySeconds > 30
+                        ? ` + ${Math.round(route.delaySeconds / 60)} min lost to damage`
+                        : " · no significant slow-down"}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span
                         className="rounded-full px-2 py-0.5 text-xs font-bold"
                         style={{
@@ -590,22 +596,52 @@ function NavigationScreen() {
                       >
                         Health {route.healthScore}%
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {route.hazards.length} hazard{route.hazards.length === 1 ? "" : "s"}
+                      {(["critical", "moderate", "minor"] as const).map((sev) =>
+                        route.counts[sev] > 0 ? (
+                          <span
+                            key={sev}
+                            className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{
+                              color: SEVERITY_TOKEN[sev],
+                              background: "color-mix(in srgb, currentColor 14%, transparent)",
+                            }}
+                          >
+                            {route.counts[sev]} {SEVERITY_LABELS[sev].toLowerCase()}
+                          </span>
+                        ) : null,
+                      )}
+                      {route.hazards.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">No reported damage</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">
+                        Rated for {VEHICLE_LABELS[vehicle].toLowerCase()}
                       </span>
                       {route.avoidsDamage ? (
-                        <span className="rounded-full bg-safe/15 px-2 py-0.5 text-xs font-semibold text-safe">
+                        <span className="rounded-full bg-safe/15 px-2 py-0.5 text-[11px] font-semibold text-safe">
                           Avoids Damaged Roads
                         </span>
                       ) : null}
+                      {route.id === fastestId ? (
+                        <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                          Fastest
+                        </span>
+                      ) : null}
+                      {route.id === healthiestId && route.id !== fastestId ? (
+                        <span className="rounded-full bg-safe/15 px-2 py-0.5 text-[11px] font-semibold text-safe">
+                          Smoothest
+                        </span>
+                      ) : null}
                       {index === 0 && !emergencyMode ? (
-                        <span className="text-xs font-semibold text-accent">Recommended</span>
+                        <span className="text-[11px] font-semibold text-accent">Recommended</span>
                       ) : null}
                     </div>
                   </button>
                 </li>
               ))}
             </ul>
+
           )}
 
           {activeRoute ? (
