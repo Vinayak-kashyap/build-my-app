@@ -94,7 +94,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string |
 export async function searchPlaces(query: string) {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`,
+      `https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=in&viewbox=80.7,27.1,81.2,26.6&q=${encodeURIComponent(query)}`,
     );
     if (!res.ok) return [];
     return (await res.json()) as { display_name: string; lat: string; lon: string }[];
