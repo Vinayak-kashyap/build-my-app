@@ -88,7 +88,9 @@ function NavigationScreen() {
   const [queryText, setQueryText] = useState("");
   const [results, setResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
 
+  const [vehicle, setVehicle] = useState<Vehicle>("car");
   const [routes, setRoutes] = useState<ScoredRoute[]>([]);
+
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [emergencyMode, setEmergencyMode] = useState(false);
