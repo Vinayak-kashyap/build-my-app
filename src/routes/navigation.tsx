@@ -220,8 +220,9 @@ function NavigationScreen() {
       remainingDistance: remaining,
       remainingSeconds:
         activeRoute.distance > 0
-          ? (remaining / activeRoute.distance) * activeRoute.duration
+          ? (remaining / activeRoute.distance) * activeRoute.adjustedDuration
           : 0,
+
       nextStep: step?.step ?? activeRoute.steps[activeRoute.steps.length - 1] ?? null,
       nextStepDistance: step?.d ?? 0,
     };
