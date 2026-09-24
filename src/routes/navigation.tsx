@@ -422,7 +422,7 @@ function NavigationScreen() {
               </div>
               <div className="text-right">
                 <p className="data-mono text-lg font-bold text-foreground">
-                  {formatDuration(progress?.remainingSeconds ?? activeRoute.duration)}
+                  {formatDuration(progress?.remainingSeconds ?? activeRoute.adjustedDuration)}
                 </p>
                 <p className="data-mono text-xs text-muted-foreground">
                   {formatDistance(progress?.remainingDistance ?? activeRoute.distance)} left
