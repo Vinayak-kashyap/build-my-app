@@ -194,6 +194,20 @@ function NavigationScreen() {
     [routes, activeRouteId],
   );
 
+  // Labels: quickest arrival vs. best road condition for the chosen vehicle.
+  const fastestId = useMemo(
+    () =>
+      routes.length
+        ? routes.reduce((a, b) => (b.adjustedDuration < a.adjustedDuration ? b : a)).id
+        : null,
+    [routes],
+  );
+  const healthiestId = useMemo(
+    () => (routes.length ? routes.reduce((a, b) => (b.healthScore > a.healthScore ? b : a)).id : null),
+    [routes],
+  );
+
+
   // Progress along the active route while navigating.
   const progress = useMemo(() => {
     if (!activeRoute || !position) return null;
