@@ -158,6 +158,7 @@ function NavigationScreen() {
         // standard mode asks for damage-avoiding detours and ranks by road health.
         const found = await fetchRoutes(origin, destination, reports, {
           emergency: emergencyMode,
+          vehicle,
         });
         setRoutes(found);
         setActiveRouteId(found[0]?.id ?? null);
@@ -169,7 +170,7 @@ function NavigationScreen() {
         setLoadingRoutes(false);
       }
     },
-    [reports, emergencyMode],
+    [reports, emergencyMode, vehicle],
   );
 
 
@@ -177,7 +178,16 @@ function NavigationScreen() {
     if (!from || !to) return;
     void planRoutes(from.point, to.point);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from?.point.lat, from?.point.lng, to?.point.lat, to?.point.lng, emergencyMode, reports.length]);
+  }, [
+    from?.point.lat,
+    from?.point.lng,
+    to?.point.lat,
+    to?.point.lng,
+    emergencyMode,
+    vehicle,
+    reports.length,
+  ]);
+
 
   const activeRoute = useMemo(
     () => routes.find((r) => r.id === activeRouteId) ?? null,
