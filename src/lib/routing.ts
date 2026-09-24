@@ -15,6 +15,8 @@ export type RouteStep = {
   distance: number;
   name: string;
   location: LatLng;
+  type: string;
+  modifier?: string;
 };
 
 export type RouteHazard = {
@@ -42,6 +44,34 @@ export type ScoredRoute = {
   /** hazard counts by vehicle-specific severity */
   counts: Record<Severity, number>;
   vehicle: Vehicle;
+  /** estimated seconds added by typical traffic at this time of day */
+  trafficSeconds: number;
+  trafficLevel: TrafficLevel;
+};
+
+export type TrafficLevel = "light" | "moderate" | "heavy";
+
+/**
+ * Free traffic estimate: Lucknow time-of-day congestion profile (no paid feed).
+ * Two-wheelers filter through traffic, so they are hit less.
+ */
+export function trafficFactor(vehicle: Vehicle, date = new Date()): { factor: number; level: TrafficLevel } {
+  const h = date.getHours() + date.getMinutes() / 60;
+  const day = date.getDay();
+  const weekend = day === 0;
+  let factor = 1.05;
+  if ((h >= 8.5 && h < 11) || (h >= 17 && h < 20.5)) factor = weekend ? 1.2 : 1.5;
+  else if ((h >= 11 && h < 17) || (h >= 20.5 && h < 22)) factor = 1.22;
+  else if (h >= 22 || h < 6) factor = 1.0;
+  if (vehicle === "bike") factor = 1 + (factor - 1) * 0.55;
+  const level: TrafficLevel = factor >= 1.35 ? "heavy" : factor >= 1.15 ? "moderate" : "light";
+  return { factor, level };
+}
+
+export const TRAFFIC_LABELS: Record<TrafficLevel, string> = {
+  light: "Light traffic",
+  moderate: "Moderate traffic",
+  heavy: "Heavy traffic",
 };
 
 
@@ -210,6 +240,8 @@ function toScored(
       distance: step.distance,
       name: step.name,
       location: { lat: step.maneuver.location[1], lng: step.maneuver.location[0] },
+      type: step.maneuver.type,
+      modifier: step.maneuver.modifier,
     }));
   const counts: Record<Severity, number> = { minor: 0, moderate: 0, critical: 0 };
   for (const h of hazards) counts[h.severity] += 1;
@@ -217,12 +249,16 @@ function toScored(
   // the OSRM baseline. Both then pay the per-hazard slow-down.
   const baseDuration = vehicle === "bike" ? route.duration * 0.92 : route.duration;
   const delaySeconds = hazardDelay(hazards, vehicle);
+  const traffic = trafficFactor(vehicle);
+  const trafficSeconds = Math.round(baseDuration * (traffic.factor - 1));
   return {
     id,
     coordinates,
     distance: route.distance,
     duration: Math.round(baseDuration),
-    adjustedDuration: Math.round(baseDuration + delaySeconds),
+    adjustedDuration: Math.round(baseDuration + trafficSeconds + delaySeconds),
+    trafficSeconds,
+    trafficLevel: traffic.level,
     delaySeconds,
     steps,
     hazards,
@@ -299,6 +335,38 @@ export async function fetchRoutes(
 
 
 
+
+/**
+ * Severity-based reroute check: suggest an alternative when it is clearly
+ * healthier for this vehicle without costing much time, or simply faster.
+ */
+export function betterAlternative(current: ScoredRoute, candidates: ScoredRoute[]) {
+  let best: { route: ScoredRoute; reason: string } | null = null;
+  for (const c of candidates) {
+    const timeDiff = c.adjustedDuration - current.adjustedDuration; // +ve = slower
+    const healthGain = c.healthScore - current.healthScore;
+    const fewerCritical = c.counts.critical < current.counts.critical;
+    let reason: string | null = null;
+    if ((healthGain >= 12 || fewerCritical) && timeDiff <= 240) {
+      reason = fewerCritical
+        ? `Avoids ${current.counts.critical - c.counts.critical} critical hazard${current.counts.critical - c.counts.critical > 1 ? "s" : ""}`
+        : `Road health ${c.healthScore}% vs ${current.healthScore}%`;
+    } else if (timeDiff <= -120 && healthGain >= -5) {
+      reason = `Saves ${Math.round(-timeDiff / 60)} min`;
+    }
+    if (reason && (!best || c.healthScore - c.adjustedDuration / 60 > best.route.healthScore - best.route.adjustedDuration / 60)) {
+      best = { route: c, reason };
+    }
+  }
+  return best;
+}
+
+/** Leaflet writes colours into SVG attributes, where CSS variables don't resolve. */
+export function resolveColor(value: string) {
+  const m = value.match(/^var\((--[^)]+)\)$/);
+  if (!m || typeof document === "undefined") return value;
+  return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim() || "#00D4FF";
+}
 
 export function formatDuration(seconds: number) {
   const mins = Math.round(seconds / 60);
