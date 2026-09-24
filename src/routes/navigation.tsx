@@ -497,6 +497,32 @@ function NavigationScreen() {
       {!navigating ? (
         <div className="glass absolute inset-x-0 bottom-0 z-[840] max-h-[52dvh] overflow-y-auto rounded-t-3xl p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+
+          {/* Vehicle profile — the same road scores differently for each. */}
+          <div
+            role="group"
+            aria-label="Vehicle type"
+            className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-elevated p-1"
+          >
+            {VEHICLES.map((v) => {
+              const Icon = v === "bike" ? Bike : Car;
+              const selected = vehicle === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => setVehicle(v)}
+                  aria-pressed={selected}
+                  className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                    selected ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {VEHICLE_LABELS[v]}
+                </button>
+              );
+            })}
+          </div>
+
           {canUseEmergency ? (
             <button
               onClick={() => setEmergencyMode((v) => !v)}
