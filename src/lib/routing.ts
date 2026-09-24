@@ -1,10 +1,12 @@
 import {
+  deriveVehicleSeverity,
   distanceMeters,
   severityWeight,
   type ReportRow,
   type Severity,
   type Vehicle,
 } from "@/lib/roadpulse";
+
 
 export type LatLng = { lat: number; lng: number };
 
@@ -292,6 +294,9 @@ export async function fetchRoutes(
       );
 
   return sorted.slice(0, 3).map((r, i) => ({ ...r, id: `route-${i}` }));
+}
+
+
 
 
 

@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUpDown,
+  Bike,
+  Car,
   ChevronLeft,
   Gauge,
   Loader2,
@@ -18,10 +20,14 @@ import { DEFAULT_FILTERS, fetchReports, searchPlaces } from "@/lib/reports";
 import {
   DAMAGE_LABELS,
   SEVERITY_LABELS,
+  SEVERITY_TOKEN,
+  VEHICLES,
+  VEHICLE_LABELS,
   distanceMeters,
   formatDistance,
   markerToken,
   type ReportRow,
+  type Vehicle,
 } from "@/lib/roadpulse";
 import {
   bearing,
@@ -31,6 +37,7 @@ import {
   type LatLng,
   type ScoredRoute,
 } from "@/lib/routing";
+
 import { z } from "zod";
 
 const searchSchema = z.object({
@@ -81,7 +88,9 @@ function NavigationScreen() {
   const [queryText, setQueryText] = useState("");
   const [results, setResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
 
+  const [vehicle, setVehicle] = useState<Vehicle>("car");
   const [routes, setRoutes] = useState<ScoredRoute[]>([]);
+
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [emergencyMode, setEmergencyMode] = useState(false);
@@ -149,6 +158,7 @@ function NavigationScreen() {
         // standard mode asks for damage-avoiding detours and ranks by road health.
         const found = await fetchRoutes(origin, destination, reports, {
           emergency: emergencyMode,
+          vehicle,
         });
         setRoutes(found);
         setActiveRouteId(found[0]?.id ?? null);
@@ -160,7 +170,7 @@ function NavigationScreen() {
         setLoadingRoutes(false);
       }
     },
-    [reports, emergencyMode],
+    [reports, emergencyMode, vehicle],
   );
 
 
@@ -168,12 +178,35 @@ function NavigationScreen() {
     if (!from || !to) return;
     void planRoutes(from.point, to.point);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from?.point.lat, from?.point.lng, to?.point.lat, to?.point.lng, emergencyMode, reports.length]);
+  }, [
+    from?.point.lat,
+    from?.point.lng,
+    to?.point.lat,
+    to?.point.lng,
+    emergencyMode,
+    vehicle,
+    reports.length,
+  ]);
+
 
   const activeRoute = useMemo(
     () => routes.find((r) => r.id === activeRouteId) ?? null,
     [routes, activeRouteId],
   );
+
+  // Labels: quickest arrival vs. best road condition for the chosen vehicle.
+  const fastestId = useMemo(
+    () =>
+      routes.length
+        ? routes.reduce((a, b) => (b.adjustedDuration < a.adjustedDuration ? b : a)).id
+        : null,
+    [routes],
+  );
+  const healthiestId = useMemo(
+    () => (routes.length ? routes.reduce((a, b) => (b.healthScore > a.healthScore ? b : a)).id : null),
+    [routes],
+  );
+
 
   // Progress along the active route while navigating.
   const progress = useMemo(() => {
@@ -201,8 +234,9 @@ function NavigationScreen() {
       remainingDistance: remaining,
       remainingSeconds:
         activeRoute.distance > 0
-          ? (remaining / activeRoute.distance) * activeRoute.duration
+          ? (remaining / activeRoute.distance) * activeRoute.adjustedDuration
           : 0,
+
       nextStep: step?.step ?? activeRoute.steps[activeRoute.steps.length - 1] ?? null,
       nextStepDistance: step?.d ?? 0,
     };
@@ -402,7 +436,7 @@ function NavigationScreen() {
               </div>
               <div className="text-right">
                 <p className="data-mono text-lg font-bold text-foreground">
-                  {formatDuration(progress?.remainingSeconds ?? activeRoute.duration)}
+                  {formatDuration(progress?.remainingSeconds ?? activeRoute.adjustedDuration)}
                 </p>
                 <p className="data-mono text-xs text-muted-foreground">
                   {formatDistance(progress?.remainingDistance ?? activeRoute.distance)} left
@@ -463,6 +497,32 @@ function NavigationScreen() {
       {!navigating ? (
         <div className="glass absolute inset-x-0 bottom-0 z-[840] max-h-[52dvh] overflow-y-auto rounded-t-3xl p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+
+          {/* Vehicle profile — the same road scores differently for each. */}
+          <div
+            role="group"
+            aria-label="Vehicle type"
+            className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-elevated p-1"
+          >
+            {VEHICLES.map((v) => {
+              const Icon = v === "bike" ? Bike : Car;
+              const selected = vehicle === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => setVehicle(v)}
+                  aria-pressed={selected}
+                  className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                    selected ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {VEHICLE_LABELS[v]}
+                </button>
+              );
+            })}
+          </div>
+
           {canUseEmergency ? (
             <button
               onClick={() => setEmergencyMode((v) => !v)}
@@ -514,13 +574,19 @@ function NavigationScreen() {
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-base font-bold text-foreground">
-                        {formatDuration(route.duration)}
+                        Route {index + 1} · {formatDuration(route.adjustedDuration)}
                       </span>
                       <span className="data-mono text-xs text-muted-foreground">
                         {formatDistance(route.distance)}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
+                    <p className="data-mono mt-0.5 text-[11px] text-muted-foreground">
+                      {formatDuration(route.duration)} clear road
+                      {route.delaySeconds > 30
+                        ? ` + ${Math.round(route.delaySeconds / 60)} min lost to damage`
+                        : " · no significant slow-down"}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span
                         className="rounded-full px-2 py-0.5 text-xs font-bold"
                         style={{
@@ -530,22 +596,52 @@ function NavigationScreen() {
                       >
                         Health {route.healthScore}%
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {route.hazards.length} hazard{route.hazards.length === 1 ? "" : "s"}
+                      {(["critical", "moderate", "minor"] as const).map((sev) =>
+                        route.counts[sev] > 0 ? (
+                          <span
+                            key={sev}
+                            className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{
+                              color: SEVERITY_TOKEN[sev],
+                              background: "color-mix(in srgb, currentColor 14%, transparent)",
+                            }}
+                          >
+                            {route.counts[sev]} {SEVERITY_LABELS[sev].toLowerCase()}
+                          </span>
+                        ) : null,
+                      )}
+                      {route.hazards.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">No reported damage</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">
+                        Rated for {VEHICLE_LABELS[vehicle].toLowerCase()}
                       </span>
                       {route.avoidsDamage ? (
-                        <span className="rounded-full bg-safe/15 px-2 py-0.5 text-xs font-semibold text-safe">
+                        <span className="rounded-full bg-safe/15 px-2 py-0.5 text-[11px] font-semibold text-safe">
                           Avoids Damaged Roads
                         </span>
                       ) : null}
+                      {route.id === fastestId ? (
+                        <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                          Fastest
+                        </span>
+                      ) : null}
+                      {route.id === healthiestId && route.id !== fastestId ? (
+                        <span className="rounded-full bg-safe/15 px-2 py-0.5 text-[11px] font-semibold text-safe">
+                          Smoothest
+                        </span>
+                      ) : null}
                       {index === 0 && !emergencyMode ? (
-                        <span className="text-xs font-semibold text-accent">Recommended</span>
+                        <span className="text-[11px] font-semibold text-accent">Recommended</span>
                       ) : null}
                     </div>
                   </button>
                 </li>
               ))}
             </ul>
+
           )}
 
           {activeRoute ? (
