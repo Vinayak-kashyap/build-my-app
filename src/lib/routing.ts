@@ -1,10 +1,12 @@
 import {
+  deriveVehicleSeverity,
   distanceMeters,
   severityWeight,
   type ReportRow,
   type Severity,
   type Vehicle,
 } from "@/lib/roadpulse";
+
 
 export type LatLng = { lat: number; lng: number };
 
