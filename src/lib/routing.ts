@@ -294,6 +294,9 @@ export async function fetchRoutes(
       );
 
   return sorted.slice(0, 3).map((r, i) => ({ ...r, id: `route-${i}` }));
+}
+
+
 
 
 
