@@ -42,6 +42,14 @@ function ErrorComponent({ error, reset }: import("@tanstack/react-router").Error
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    if (/Failed to fetch dynamically imported module|Importing a module script failed/i.test(error?.message ?? "")) {
+      const KEY = "roadpulse.chunk-reload";
+      if (Date.now() - Number(sessionStorage.getItem(KEY) ?? 0) > 10000) {
+        sessionStorage.setItem(KEY, String(Date.now()));
+        window.location.reload();
+        return;
+      }
+    }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
