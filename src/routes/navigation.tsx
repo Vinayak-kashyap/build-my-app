@@ -9,6 +9,9 @@ import {
   Loader2,
   Navigation as NavigationIcon,
   Siren,
+  Volume2,
+  VolumeX,
+  List,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -31,7 +34,9 @@ import {
 } from "@/lib/roadpulse";
 import {
   bearing,
+  betterAlternative,
   fetchRoutes,
+  TRAFFIC_LABELS,
   formatDuration,
   healthTone,
   type LatLng,
@@ -100,6 +105,11 @@ function NavigationScreen() {
   const [rerouting, setRerouting] = useState(false);
   const [dismissedHazards, setDismissedHazards] = useState<string[]>([]);
 
+  const [voiceOn, setVoiceOn] = useState(true);
+  const [showSteps, setShowSteps] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ route: ScoredRoute; reason: string; all: ScoredRoute[] } | null>(null);
+  const spokenRef = useRef<string>("");
+  const lastCheck = useRef(0);
   const lastPoint = useRef<LatLng | null>(null);
   const lastReroute = useRef(0);
 
@@ -269,6 +279,60 @@ function NavigationScreen() {
     return candidate ?? null;
   }, [navigating, activeRoute, position, dismissedHazards]);
 
+  // Spoken turn-by-turn guidance.
+  useEffect(() => {
+    if (!navigating || !voiceOn || !progress?.nextStep || !("speechSynthesis" in window)) return;
+    const d = progress.nextStepDistance;
+    const bucket = d < 60 ? "now" : d < 250 ? "soon" : null;
+    if (!bucket) return;
+    const key = `${progress.nextStep.location.lat},${progress.nextStep.location.lng}:${bucket}`;
+    if (spokenRef.current === key) return;
+    spokenRef.current = key;
+    const text = bucket === "now"
+      ? progress.nextStep.instruction
+      : `In ${Math.round(d / 10) * 10} metres, ${progress.nextStep.instruction}`;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-IN";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }, [navigating, voiceOn, progress?.nextStep, progress?.nextStepDistance]);
+
+  useEffect(() => {
+    if (!navigating || !voiceOn || !upcomingHazard || !("speechSynthesis" in window)) return;
+    const key = `hz:${upcomingHazard.report.id}`;
+    if (spokenRef.current === key) return;
+    spokenRef.current = key;
+    window.speechSynthesis.speak(
+      new SpeechSynthesisUtterance(
+        `Caution. ${SEVERITY_LABELS[upcomingHazard.report.severity]} ${DAMAGE_LABELS[upcomingHazard.report.damage_types[0] ?? "pothole"]} ahead in ${Math.round(upcomingHazard.distance)} metres`,
+      ),
+    );
+  }, [navigating, voiceOn, upcomingHazard]);
+
+  // Severity-based rerouting: every 90s re-check from where you are and offer
+  // a healthier (for this vehicle) or faster alternative.
+  useEffect(() => {
+    if (!navigating || !position || !to || !activeRoute || suggestion) return;
+    if (Date.now() - lastCheck.current < 90000) return;
+    lastCheck.current = Date.now();
+    void fetchRoutes(position, to.point, reports, { emergency: emergencyMode, vehicle })
+      .then((found) => {
+        if (!found.length) return;
+        const current = found.reduce((a, b) =>
+          Math.abs(b.distance - (progress?.remainingDistance ?? 0)) <
+          Math.abs(a.distance - (progress?.remainingDistance ?? 0)) ? b : a,
+        );
+        const alt = betterAlternative(current, found.filter((r) => r.id !== current.id));
+        if (alt) {
+          setSuggestion({ ...alt, all: found });
+          if (voiceOn && "speechSynthesis" in window) {
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(`Better route available. ${alt.reason}`));
+          }
+        }
+      })
+      .catch(() => undefined);
+  }, [navigating, position, to, activeRoute, suggestion, reports, emergencyMode, vehicle, voiceOn, progress?.remainingDistance]);
+
   function pickResult(result: { display_name: string; lat: string; lon: string }) {
     const place = {
       label: result.display_name,
@@ -298,6 +362,7 @@ function NavigationScreen() {
         autoRotate={navigating}
         fitKey={fitKey}
         onHazardSelect={setHazardPopup}
+        onRouteSelect={(id) => setActiveRouteId(id)}
       />
 
       {!navigating ? (
@@ -388,10 +453,40 @@ function NavigationScreen() {
                   {progress?.nextStep?.instruction ?? "Continue ahead"}
                 </p>
                 <p className="data-mono text-xs text-muted-foreground">
-                  in {formatDistance(progress?.nextStepDistance ?? 0)}
+                  in {formatDistance(progress?.nextStepDistance ?? 0)} ·{" "}
+                  {TRAFFIC_LABELS[activeRoute.trafficLevel]}
                 </p>
               </div>
+              <button
+                onClick={() => setShowSteps((v) => !v)}
+                aria-label="Show all directions"
+                className="tap-target flex items-center justify-center text-muted-foreground"
+              >
+                <List className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                onClick={() => {
+                  setVoiceOn((v) => !v);
+                  window.speechSynthesis?.cancel();
+                }}
+                aria-label={voiceOn ? "Mute voice guidance" : "Unmute voice guidance"}
+                className="tap-target flex items-center justify-center text-accent"
+              >
+                {voiceOn ? <Volume2 className="h-5 w-5" aria-hidden="true" /> : <VolumeX className="h-5 w-5" aria-hidden="true" />}
+              </button>
             </div>
+            {showSteps ? (
+              <ol className="mt-3 max-h-56 space-y-1 overflow-y-auto border-t border-border pt-2">
+                {activeRoute.steps.map((st, i) => (
+                  <li key={i} className="flex justify-between gap-2 text-sm text-foreground">
+                    <span className="truncate">{st.instruction}</span>
+                    <span className="data-mono shrink-0 text-xs text-muted-foreground">
+                      {formatDistance(st.distance)}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : null}
           </div>
 
           <AnimatePresence>
@@ -453,6 +548,34 @@ function NavigationScreen() {
               End Navigation
             </button>
           </div>
+
+          {suggestion ? (
+            <div className="glass absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+150px)] z-[870] rounded-2xl border p-3" style={{ borderColor: "var(--safe)" }}>
+              <p className="text-sm font-bold text-foreground">Better route for your {VEHICLE_LABELS[vehicle].toLowerCase()}</p>
+              <p className="data-mono text-xs text-muted-foreground">
+                {suggestion.reason} · {formatDuration(suggestion.route.adjustedDuration)} · Health {suggestion.route.healthScore}%
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setSuggestion(null)}
+                  className="tap-target rounded-xl bg-surface-elevated text-xs font-semibold text-foreground"
+                >
+                  Keep current
+                </button>
+                <button
+                  onClick={() => {
+                    setRoutes(suggestion.all);
+                    setActiveRouteId(suggestion.route.id);
+                    setSuggestion(null);
+                    toast.success("Switched to the better route");
+                  }}
+                  className="tap-target rounded-xl bg-safe text-xs font-bold text-safe-foreground"
+                >
+                  Switch route
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <AnimatePresence>
             {upcomingHazard ? (
@@ -585,6 +708,7 @@ function NavigationScreen() {
                       {route.delaySeconds > 30
                         ? ` + ${Math.round(route.delaySeconds / 60)} min lost to damage`
                         : " · no significant slow-down"}
+                      {` · ${TRAFFIC_LABELS[route.trafficLevel].toLowerCase()} (+${Math.round(route.trafficSeconds / 60)} min)`}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span
@@ -649,6 +773,7 @@ function NavigationScreen() {
               onClick={() => {
                 setNavigating(true);
                 setDismissedHazards([]);
+                lastCheck.current = Date.now();
               }}
               className="tap-target mt-3 w-full rounded-xl bg-accent text-sm font-bold text-accent-foreground"
             >

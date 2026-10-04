@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
 
   Mic,
+  Navigation as NavIcon,
   Search,
   SlidersHorizontal,
   TriangleAlert,
@@ -347,6 +348,9 @@ function MapScreen() {
           }}
         >
           <Crosshair className="h-5 w-5" aria-hidden="true" />
+        </ControlButton>
+        <ControlButton label="Get directions" onClick={() => navigate({ to: "/navigation" })}>
+          <NavIcon className="h-5 w-5 text-accent" aria-hidden="true" />
         </ControlButton>
         <ControlButton label="Filter reports" onClick={() => setShowFilters(true)}>
           <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
