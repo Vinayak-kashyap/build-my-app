@@ -3,7 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { markerToken } from "@/lib/roadpulse";
 import type { LatLng, ScoredRoute } from "@/lib/routing";
-import { healthTone } from "@/lib/routing";
+import { formatDuration, healthTone, resolveColor } from "@/lib/routing";
 import type { ReportRow } from "@/lib/roadpulse";
 
 type Props = {
@@ -17,6 +17,7 @@ type Props = {
   autoRotate: boolean;
   fitKey: number;
   onHazardSelect: (report: ReportRow) => void;
+  onRouteSelect?: (id: string) => void;
 };
 
 export function NavMap({
@@ -29,6 +30,7 @@ export function NavMap({
   autoRotate,
   fitKey,
   onHazardSelect,
+  onRouteSelect,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rotatorRef = useRef<HTMLDivElement>(null);
@@ -38,6 +40,8 @@ export function NavMap({
   const userLayerRef = useRef<L.LayerGroup | null>(null);
   const selectRef = useRef(onHazardSelect);
   selectRef.current = onHazardSelect;
+  const routeSelectRef = useRef(onRouteSelect);
+  routeSelectRef.current = onRouteSelect;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -67,21 +71,44 @@ export function NavMap({
     if (!layer) return;
     layer.clearLayers();
 
-    for (const route of routes) {
+    // Inactive first so the chosen route sits on top.
+    const ordered = [...routes].sort((a, b) =>
+      a.id === activeRouteId ? 1 : b.id === activeRouteId ? -1 : 0,
+    );
+    for (const route of ordered) {
       const active = route.id === activeRouteId;
-      L.polyline(
-        route.coordinates.map((c) => [c.lat, c.lng] as [number, number]),
-        {
-          color: active ? healthTone(route.healthScore) : "#8B949E",
-          weight: active ? 7 : 4,
-          opacity: active ? 0.95 : 0.4,
-          lineJoin: "round",
-        },
-      ).addTo(layer);
+      const latlngs = route.coordinates.map((c) => [c.lat, c.lng] as [number, number]);
+      const color = active ? resolveColor(healthTone(route.healthScore)) : "#8B949E";
+      if (active) {
+        L.polyline(latlngs, { color: "#0D1117", weight: 11, opacity: 0.5, interactive: false }).addTo(layer);
+      }
+      const line = L.polyline(latlngs, {
+        color,
+        weight: active ? 7 : 6,
+        opacity: active ? 0.95 : 0.55,
+        lineJoin: "round",
+      })
+        .on("click", () => routeSelectRef.current?.(route.id))
+        .addTo(layer);
+      const mid = latlngs[Math.floor(latlngs.length * (active ? 0.5 : 0.4))];
+      if (mid) {
+        L.marker(mid, {
+          icon: L.divIcon({
+            html: `<span style="display:inline-block;white-space:nowrap;padding:3px 8px;border-radius:10px;font:600 12px system-ui;background:${active ? color : "#161B22"};color:${active ? "#0D1117" : "#E6EDF3"};border:1px solid ${color};box-shadow:0 2px 6px rgba(0,0,0,.4)">${formatDuration(route.adjustedDuration)} · ${route.healthScore}%</span>`,
+            className: "rp-icon",
+            iconSize: [0, 0],
+            iconAnchor: [40, 12],
+          }),
+          zIndexOffset: active ? 1000 : 0,
+        })
+          .on("click", () => routeSelectRef.current?.(route.id))
+          .addTo(layer);
+      }
+      void line;
 
       if (!active) continue;
       for (const hazard of route.hazards) {
-        const color = markerToken(hazard.report);
+        const color = resolveColor(markerToken(hazard.report));
         L.marker([hazard.report.latitude, hazard.report.longitude], {
           icon: L.divIcon({
             html: `<span class="rp-marker${hazard.report.severity === "critical" ? " rp-pulse" : ""}" style="--rp:${color}"></span>`,
