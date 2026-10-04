@@ -42,6 +42,14 @@ function ErrorComponent({ error, reset }: import("@tanstack/react-router").Error
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    if (/Failed to fetch dynamically imported module|Importing a module script failed/i.test((error as Error)?.message ?? "")) {
+      const KEY = "roadpulse.chunk-reload";
+      if (Date.now() - Number(sessionStorage.getItem(KEY) ?? 0) > 10000) {
+        sessionStorage.setItem(KEY, String(Date.now()));
+        window.location.reload();
+        return;
+      }
+    }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
@@ -134,6 +142,39 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // After a new release, an open tab may ask for page files that no longer
+  // exist. Reload once to pick up the latest version instead of going blank.
+  useEffect(() => {
+    const KEY = "roadpulse.chunk-reload";
+    const isChunkError = (msg: string) =>
+      /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(msg);
+    const reloadOnce = () => {
+      const last = Number(sessionStorage.getItem(KEY) ?? 0);
+      if (Date.now() - last < 10000) return;
+      sessionStorage.setItem(KEY, String(Date.now()));
+      window.location.reload();
+    };
+    const onPreload = (e: Event) => {
+      e.preventDefault();
+      reloadOnce();
+    };
+    const onRejection = (e: PromiseRejectionEvent) => {
+      if (isChunkError(String(e.reason?.message ?? e.reason))) reloadOnce();
+    };
+    const onError = (e: ErrorEvent) => {
+      if (isChunkError(e.message ?? "")) reloadOnce();
+    };
+    window.addEventListener("vite:preloadError", onPreload);
+    window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("vite:preloadError", onPreload);
+      window.removeEventListener("unhandledrejection", onRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, []);
+
 
   return (
     <QueryClientProvider client={queryClient}>
