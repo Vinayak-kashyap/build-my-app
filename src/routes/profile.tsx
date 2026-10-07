@@ -303,6 +303,11 @@ function ProfileScreen() {
             Go to Authority Dashboard
           </button>
           <ListItem
+            icon={<LayoutDashboard className="h-4 w-4 text-accent" />}
+            label={role === "admin" ? "Admin Console (approvals & complaints)" : "Civic complaints to file"}
+            onClick={() => navigate({ to: "/admin" })}
+          />
+          <ListItem
             icon={<Download className="h-4 w-4 text-accent" />}
             label={exporting ? "Preparing PDF…" : "Download My Reports (PDF)"}
             onClick={() => void onExport()}
